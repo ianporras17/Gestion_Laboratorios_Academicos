@@ -113,3 +113,20 @@ labtec/
 ├─ docker-compose.yml       # db, pgadmin, api
 ├─ .env                     # variables para compose y API
 └─ README.md
+
+
+# Postgres
+POSTGRES_USER=labtec
+POSTGRES_PASSWORD=labtec
+POSTGRES_DB=labtec
+
+# API
+API_PORT=8080
+NODE_ENV=development
+# Orígenes permitidos para desarrollo (Expo)
+CORS_ORIGIN=http://localhost:19006,http://localhost:19000,exp://*
+
+# pgAdmin
+PGADMIN_DEFAULT_EMAIL=admin@tec.ac.cr
+PGADMIN_DEFAULT_PASSWORD=admin123
+PGADMIN_PORT=5050
