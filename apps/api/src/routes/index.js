@@ -7,5 +7,7 @@ router.get('/health', (_req, res) => res.json({ ok: true }));
 // ⚠️ monta subrutas
 router.use('/auth', require('./auth'));
 router.use('/users', require('./users'));
+router.use('/approved', require('./approved'));
+router.use('/inventory', require('./inventory'));   
 
 module.exports = router;
