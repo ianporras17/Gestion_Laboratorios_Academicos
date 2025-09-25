@@ -9,5 +9,6 @@ router.use('/auth', require('./auth'));
 router.use('/users', require('./users'));
 router.use('/approved', require('./approved'));
 router.use('/inventory', require('./inventory'));   
+router.use('/maintenance', require('./maintenance'));
 
 module.exports = router;

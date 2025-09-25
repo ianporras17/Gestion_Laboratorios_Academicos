@@ -3,7 +3,7 @@ const pool = require('../db/pool');
 const { hashPassword, comparePassword } = require('../utils/password');
 const { signJwt } = require('../utils/jwt');
 
-/** Dominios por rol (requerimiento TEC) */
+/** Dominios por rol */
 const DOMAIN_STUDENT = '@estudiante.tec.ac.cr';
 const DOMAIN_TEACHER = '@itcr.ac.cr';
 const DOMAIN_TECH    = '@itcr.ac.cr';
