@@ -1,9 +1,11 @@
-const { Router } = require("express");
+const { Router } = require('express');
 const router = Router();
 
-// ejemplo de endpoint
-router.get("/hello", (req, res) => {
-  res.json({ message: "hello from API" });
-});
+// Este /health se verá como /api/health por el prefijo del server
+router.get('/health', (_req, res) => res.json({ ok: true }));
+
+// ⚠️ monta subrutas
+router.use('/auth', require('./auth'));
+router.use('/users', require('./users'));
 
 module.exports = router;
