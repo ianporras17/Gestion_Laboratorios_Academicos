@@ -1,11 +1,11 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const app = require('./app');
 
 // ⚠️ importa el index del folder routes
 const routes = require('./routes');
 
-const app = express();
 
 // Middlewares base
 app.use(express.json());

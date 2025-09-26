@@ -1,13 +1,13 @@
 const pool = require('../db/pool');
 
-/* Helper: obtiene recurso por id con lock opcional */
+/* Helper */
 async function getResource(client, id, forUpdate = false) {
   const q = `SELECT * FROM resources WHERE id = $1` + (forUpdate ? ' FOR UPDATE' : '');
   const { rows } = await client.query(q, [id]);
   return rows[0] || null;
 }
 
-/* Listado con filtros: type, status, labId, q (name/code) */
+/* Listado */
 async function listResources(req, res) {
   const { type, status, labId, q } = req.query;
   const where = [];
@@ -33,18 +33,17 @@ async function listResources(req, res) {
   }
 }
 
-/* Alta de EQUIPO */
+/* Alta EQUIPO */
 async function createEquipment(req, res) {
   const { lab_id, name, code, location } = req.body || {};
   if (!lab_id || !name || !code) return res.status(400).json({ error: 'lab_id, name, code required' });
-
   try {
-    const sql = `
-      INSERT INTO resources (lab_id, type, name, code, status, location, stock, min_stock)
-      VALUES ($1, 'EQUIPO', $2, $3, 'DISPONIBLE', $4, 0, 0)
-      RETURNING *
-    `;
-    const { rows } = await pool.query(sql, [lab_id, name, code, location || null]);
+    const { rows } = await pool.query(
+      `INSERT INTO resources (lab_id, type, name, code, status, location, stock, min_stock)
+       VALUES ($1, 'EQUIPO', $2, $3, 'DISPONIBLE', $4, 0, 0)
+       RETURNING *`,
+      [lab_id, name, code, location || null]
+    );
     res.status(201).json(rows[0]);
   } catch (e) {
     console.error('createEquipment', e);
@@ -52,7 +51,7 @@ async function createEquipment(req, res) {
   }
 }
 
-/* Editar EQUIPO (nombre, código, ubicación, lab, etc.) */
+/* Editar EQUIPO */
 async function updateEquipment(req, res) {
   const { id } = req.params;
   const { lab_id, name, code, location } = req.body || {};
@@ -65,9 +64,11 @@ async function updateEquipment(req, res) {
   if (!fields.length) return res.status(400).json({ error: 'No fields to update' });
 
   params.push(id);
-  const sql = `UPDATE resources SET ${fields.join(', ')} WHERE id = $${params.length} AND type='EQUIPO' RETURNING *`;
   try {
-    const { rows } = await pool.query(sql, params);
+    const { rows } = await pool.query(
+      `UPDATE resources SET ${fields.join(', ')} WHERE id = $${params.length} AND type='EQUIPO' RETURNING *`,
+      params
+    );
     if (!rows[0]) return res.status(404).json({ error: 'Equipment not found' });
     res.json(rows[0]);
   } catch (e) {
@@ -76,7 +77,7 @@ async function updateEquipment(req, res) {
   }
 }
 
-/* Baja (INACTIVO) de EQUIPO */
+/* Baja EQUIPO */
 async function deactivateEquipment(req, res) {
   const { id } = req.params;
   try {
@@ -91,7 +92,7 @@ async function deactivateEquipment(req, res) {
   }
 }
 
-/* Alta de MATERIAL */
+/* Alta MATERIAL (stock inicial opcional) */
 async function createMaterial(req, res) {
   const { lab_id, name, code, min_stock, initial_stock } = req.body || {};
   if (!lab_id || !name || !code) return res.status(400).json({ error: 'lab_id, name, code required' });
@@ -99,6 +100,7 @@ async function createMaterial(req, res) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+
     const { rows } = await client.query(
       `INSERT INTO resources (lab_id, type, name, code, status, stock, min_stock)
        VALUES ($1,'MATERIAL',$2,$3,'DISPONIBLE',$4,$5)
@@ -109,11 +111,12 @@ async function createMaterial(req, res) {
 
     if ((initial_stock || 0) > 0) {
       await client.query(
-        `INSERT INTO inventory_movements (resource_id, user_id, movement_type, quantity, reason)
-         VALUES ($1, $2, 'IN', $3, 'Alta material - stock inicial')`,
-        [material.id, req.user?.id || null, initial_stock || 0]
+        `INSERT INTO inventory_movements (resource_id, type, quantity, reason, actor_id)
+         VALUES ($1, 'IN', $2, 'Alta material - stock inicial', $3)`,
+        [material.id, initial_stock || 0, req.user?.id || null]
       );
     }
+
     await client.query('COMMIT');
     res.status(201).json(material);
   } catch (e) {
@@ -125,38 +128,42 @@ async function createMaterial(req, res) {
   }
 }
 
-/* Ajuste de stock MATERIAL con movimiento (IN/OUT) */
+/* Ajuste stock MATERIAL (delta >0 = IN, delta <0 = OUT) */
 async function adjustMaterialStock(req, res) {
   const { id } = req.params;
-  const { delta, reason } = req.body || {}; // delta >0 = IN, delta <0 = OUT
-  if (!delta || delta === 0) return res.status(400).json({ error: 'delta (non-zero) required' });
+  const { delta, reason } = req.body || {};
+  const actorId = req.user?.id;
+
+  if (!Number.isFinite(delta) || delta === 0) {
+    return res.status(422).json({ error: 'delta must be a non-zero number' });
+  }
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const resrc = await getResource(client, id, true);
-    if (!resrc || resrc.type !== 'MATERIAL') {
-      await client.query('ROLLBACK');
-      return res.status(404).json({ error: 'Material not found' });
-    }
 
-    const newStock = resrc.stock + delta;
-    if (newStock < 0) {
-      await client.query('ROLLBACK');
-      return res.status(409).json({ error: 'Stock cannot be negative' });
-    }
+    const r = await client.query(
+      `SELECT id, type, COALESCE(stock,0) AS stock
+       FROM resources WHERE id=$1 AND type='MATERIAL' FOR UPDATE`,
+      [id]
+    );
+    if (!r.rowCount) return res.status(404).json({ error: 'material not found' });
 
-    await client.query(`UPDATE resources SET stock=$1 WHERE id=$2`, [newStock, id]);
+    const current = Number(r.rows[0].stock);
+    const next = current + delta;
+    if (next < 0) return res.status(409).json({ error: 'stock cannot go negative' });
+
+    await client.query(`UPDATE resources SET stock=$2 WHERE id=$1`, [id, next]);
+
+    const movementType = delta < 0 ? 'OUT' : 'IN';
     await client.query(
-      `INSERT INTO inventory_movements (resource_id, user_id, movement_type, quantity, reason)
-       VALUES ($1,$2,$3,$4,$5)`,
-      [id, req.user?.id || null, delta > 0 ? 'IN' : 'OUT', Math.abs(delta), reason || null]
+      `INSERT INTO inventory_movements (resource_id, type, quantity, reason, actor_id)
+       VALUES ($1, $2, ABS($3), $4, $5)`,
+      [id, movementType, delta, reason || null, actorId]
     );
 
-    // Alerta simple (solo informativa)
-    const low = newStock < resrc.min_stock;
     await client.query('COMMIT');
-    res.json({ ok: true, resource_id: id, stock: newStock, low_stock: low });
+    res.json({ ok: true, stock: next });
   } catch (e) {
     await client.query('ROLLBACK');
     console.error('adjustMaterialStock', e);
@@ -166,7 +173,7 @@ async function adjustMaterialStock(req, res) {
   }
 }
 
-/* Cambiar estado de un recurso (cubre EQUIPO y MATERIAL) */
+/* Cambiar estado recurso */
 async function setResourceStatus(req, res) {
   const { id } = req.params;
   const { status } = req.body || {};
@@ -184,60 +191,53 @@ async function setResourceStatus(req, res) {
   }
 }
 
-/* Movimientos manuales (afecta stock solo si es MATERIAL) */
+/* Movimientos manuales (IN/OUT) – actualiza stock si es MATERIAL */
 async function createMovement(req, res) {
   const { resource_id, movement_type, quantity, reason } = req.body || {};
-  if (!resource_id || !movement_type || !quantity) {
-    return res.status(400).json({ error: 'resource_id, movement_type, quantity required' });
+  const actorId = req.user?.id;
+
+  if (!resource_id || !movement_type || !Number.isFinite(quantity) || quantity <= 0) {
+    return res.status(422).json({ error: 'resource_id, movement_type(IN|OUT), quantity>0 required' });
   }
-  if (!['IN','OUT'].includes(movement_type)) return res.status(400).json({ error: 'movement_type must be IN or OUT' });
+  const type = String(movement_type).toUpperCase();
+  if (!['IN', 'OUT'].includes(type)) {
+    return res.status(422).json({ error: 'movement_type must be IN or OUT' });
+  }
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const r = await getResource(client, resource_id, true);
-    if (!r) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Resource not found' }); }
 
-    if (r.type === 'MATERIAL') {
-      const delta = movement_type === 'IN' ? quantity : -quantity;
-      const newStock = r.stock + delta;
-      if (newStock < 0) {
-        await client.query('ROLLBACK');
-        return res.status(409).json({ error: 'Stock cannot be negative' });
-      }
-      await client.query(`UPDATE resources SET stock=$1 WHERE id=$2`, [newStock, resource_id]);
+    const r = await client.query(
+      `SELECT id, type, COALESCE(stock,0) AS stock
+       FROM resources WHERE id=$1 FOR UPDATE`,
+      [resource_id]
+    );
+    if (!r.rowCount) return res.status(404).json({ error: 'resource not found' });
+
+    const isMaterial = r.rows[0].type === 'MATERIAL';
+    let nextStock = Number(r.rows[0].stock);
+
+    if (isMaterial) {
+      nextStock = type === 'IN' ? nextStock + quantity : nextStock - quantity;
+      if (nextStock < 0) return res.status(409).json({ error: 'stock cannot go negative' });
+      await client.query(`UPDATE resources SET stock=$2 WHERE id=$1`, [resource_id, nextStock]);
     }
 
     await client.query(
-      `INSERT INTO inventory_movements (resource_id, user_id, movement_type, quantity, reason)
-       VALUES ($1,$2,$3,$4,$5)`,
-      [resource_id, req.user?.id || null, movement_type, quantity, reason || null]
+      `INSERT INTO inventory_movements (resource_id, type, quantity, reason, actor_id)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [resource_id, type, quantity, reason || null, actorId]
     );
 
     await client.query('COMMIT');
-    res.json({ ok: true });
+    res.json({ ok: true, newStock: isMaterial ? nextStock : undefined });
   } catch (e) {
     await client.query('ROLLBACK');
     console.error('createMovement', e);
     res.status(500).json({ error: 'Internal error creating movement' });
   } finally {
     client.release();
-  }
-}
-
-/* Materiales por debajo de min_stock */
-async function listLowStock(req, res) {
-  try {
-    const { rows } = await pool.query(
-      `SELECT id, name, code, stock, min_stock, lab_id
-       FROM resources
-       WHERE type='MATERIAL' AND stock < min_stock
-       ORDER BY (min_stock - stock) DESC`
-    );
-    res.json(rows);
-  } catch (e) {
-    console.error('listLowStock', e);
-    res.status(500).json({ error: 'Internal error listing low stock' });
   }
 }
 
@@ -250,5 +250,18 @@ module.exports = {
   adjustMaterialStock,
   setResourceStatus,
   createMovement,
-  listLowStock,
+  listLowStock: async function listLowStock(req, res) {
+    try {
+      const { rows } = await pool.query(
+        `SELECT id, name, code, stock, min_stock, lab_id
+         FROM resources
+         WHERE type='MATERIAL' AND stock < min_stock
+         ORDER BY (min_stock - stock) DESC`
+      );
+      res.json(rows);
+    } catch (e) {
+      console.error('listLowStock', e);
+      res.status(500).json({ error: 'Internal error listing low stock' });
+    }
+  }
 };

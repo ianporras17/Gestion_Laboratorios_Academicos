@@ -90,7 +90,7 @@ async function register(req, res) {
       dbRole, full_name, id_code, career_or_department, email, phone || null, password_hash
     ]);
     const user = rows[0];
-    const token = signJwt({ id: user.id, role: user.role });
+    const token = signJwt({ id: user.id, role: String(user.role).toUpperCase() });
     return res.status(201).json({ token, user });
   } catch (e) {
     console.error('register', e);

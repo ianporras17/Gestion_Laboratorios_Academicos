@@ -10,5 +10,6 @@ router.use('/users', require('./users'));
 router.use('/approved', require('./approved'));
 router.use('/inventory', require('./inventory'));   
 router.use('/maintenance', require('./maintenance'));
+router.use('/reports', require('./reports'));
 
 module.exports = router;

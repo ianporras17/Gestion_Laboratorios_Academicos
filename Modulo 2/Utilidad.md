@@ -10,6 +10,10 @@ docker-compose up -d --build
 
 Set-Location "C:\Users\Admin\OneDrive - Estudiantes ITCR\Escritorio\Code_Proyecto Admin\Gestion_Laboratorios_Academicos"
 
+# Reportes de excel
+npm i exceljs pdfkit
+
+
 //para ver los usuarios que hay
 docker compose exec -T db psql -U labtec -d labtec -c "SELECT id, role, email FROM users ORDER BY created_at DESC LIMIT 20;"
 
@@ -80,8 +84,6 @@ POST /api/maintenance/schedule
   "phone": "+50688888888"
 }
 
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImYxMmMwODc5LTIwMzEtNGM1My1iZTU1LTc4NTIxZjIyOWJhNiIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc1ODgzMzUxNCwiZXhwIjoxNzU5NDM4MzE0fQ.Jmlu4dqgJh2MrXuqwgUztBJFjUs7inOdpzKnthGzLds
-
 
 docker compose exec -T db psql -U labtec -d labtec -c `
 "INSERT INTO users (role, full_name, id_code, career_or_department, email, phone, password_hash)
@@ -91,11 +93,11 @@ docker compose exec -T db psql -U labtec -d labtec -c `
  docker compose exec -T db psql -U labtec -d labtec -c "INSERT INTO laboratories (name, code, school, location) VALUES ('Lab Electrónica','ELEC-01','EIC','Edif B-201') RETURNING id, name;"
  # id 87302ef1-11f7-40b1-bc6b-9987746d2b4b
 
- 1d4adec7-396e-4583-bcbb-834150a47524
-
-
-# comando utiles
-docker compose exec -T db psql -U labtec -d labtec -c "\dT+ public.user_role"
-docker compose exec -T db psql -U labtec -d labtec -c "\d+ public.resources"
-docker compose exec -T db psql -U labtec -d labtec -c "SELECT * FROM maintenances ORDER BY created_at DESC LIMIT 5;"
-docker compose exec -T db psql -U labtec -d labtec -c "SELECT * FROM inventory_movements ORDER BY created_at DESC LIMIT 5;"
+| Endpoint                  | Qué hace                                        | Query params                       |       |
+| ------------------------- | ----------------------------------------------- | ---------------------------------- | ----- |
+| `GET /usage`              | Recursos más utilizados y usuarios frecuentes   | `from`, `to`, `labId`, `limit`     |       |
+| `GET /inventory`          | Estado de stock, críticos y consumo por periodo | `from`, `to`, `labId`              |       |
+| `GET /maintenance`        | Downtime promedio y frecuencia de reparaciones  | `from`, `to`, `labId`              |       |
+| `GET /usage/export`       | Exporta uso (PDF/Excel)                         | `from`, `to`, `labId`, `format=pdf | xlsx` |
+| `GET /inventory/export`   | Exporta inventario (PDF/Excel)                  | idem                               |       |
+| `GET /maintenance/export` | Exporta mantenimiento (PDF/Excel)               | idem                               |       |

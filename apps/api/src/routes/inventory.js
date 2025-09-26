@@ -7,20 +7,20 @@ const r = Router();
 r.use(authRequired, requireRole('TECH','ADMIN'));
 
 /** Equipos (EQUIPO) */
-r.post('/equipment', ctrl.createEquipment);               // alta
-r.patch('/equipment/:id', ctrl.updateEquipment);          // edición
-r.delete('/equipment/:id', ctrl.deactivateEquipment);     // baja (INACTIVO)
+r.post('/equipment', ctrl.createEquipment);
+r.patch('/equipment/:id', ctrl.updateEquipment);
+r.delete('/equipment/:id', ctrl.deactivateEquipment);
 
 /** Materiales (MATERIAL) */
-r.post('/materials', ctrl.createMaterial);                // alta
-r.post('/materials/:id/stock', ctrl.adjustMaterialStock); // IN/OUT con motivo
-r.get('/materials/low-stock', ctrl.listLowStock);         // alertas (stock < min_stock)
+r.post('/materials', ctrl.createMaterial);
+r.post('/materials/:id/stock', ctrl.adjustMaterialStock);  // delta (+IN / -OUT)
+r.get('/materials/low-stock', ctrl.listLowStock);
 
 /** Estados y consulta general */
-r.get('/resources', ctrl.listResources);                  // listar con filtros
-r.post('/resources/:id/status', ctrl.setResourceStatus);  // cambiar estado
+r.get('/resources', ctrl.listResources);
+r.post('/resources/:id/status', ctrl.setResourceStatus);
 
 /** Movimientos manuales (cualquier recurso) */
-r.post('/movements', ctrl.createMovement);                // IN/OUT + reason
+r.post('/movements', ctrl.createMovement);                 // IN/OUT + reason
 
 module.exports = r;
