@@ -106,22 +106,39 @@ async function addMyCert(req, res) {
   try {
     await client.query('BEGIN');
 
-    // upsert certification
+    // 1) Upsert de la certificación
     const upsertCert = `
       INSERT INTO certifications (code, name)
       VALUES ($1, COALESCE($2, $1))
-      ON CONFLICT (code) DO UPDATE SET name = COALESCE(EXCLUDED.name, certifications.name)
-      RETURNING id, code, name`;
+      ON CONFLICT (code) DO UPDATE
+        SET name = COALESCE(EXCLUDED.name, certifications.name)
+      RETURNING id, code, name
+    `;
     const { rows: certRows } = await client.query(upsertCert, [code, name || null]);
     const certId = certRows[0].id;
+    const certName = certRows[0].name; // siempre queda al menos = code
 
-    // link to user
+    // 2) Vincular al usuario (upsert por (user_id, certification_id))
     const link = `
       INSERT INTO user_certifications (user_id, certification_id, obtained_at)
       VALUES ($1,$2,$3)
-      ON CONFLICT (user_id, certification_id) DO UPDATE SET obtained_at = EXCLUDED.obtained_at
-      RETURNING user_id, certification_id, obtained_at`;
+      ON CONFLICT (user_id, certification_id) DO UPDATE
+        SET obtained_at = EXCLUDED.obtained_at
+      RETURNING user_id, certification_id, obtained_at
+    `;
     const { rows: linkRows } = await client.query(link, [req.user.id, certId, obtained_at]);
+
+    // 3) LOG de actividad (training_completed)  ✅
+    //    - event_time = obtained_at (fecha de obtención)
+    //    - meta: code + name para trazabilidad
+    await client.query(
+      `INSERT INTO user_activity_log
+         (user_id, activity_type, event_time, certification_id, hours, credits, meta)
+       VALUES
+         ($1, 'training_completed', $2, $3, 0, 0,
+          jsonb_build_object('code', $4, 'name', $5))`,
+      [req.user.id, new Date(obtained_at), certId, code, certName]
+    );
 
     await client.query('COMMIT');
     return res.status(201).json(linkRows[0]);

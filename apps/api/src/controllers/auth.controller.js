@@ -3,7 +3,7 @@ const pool = require('../db/pool');
 const { hashPassword, comparePassword } = require('../utils/password');
 const { signJwt } = require('../utils/jwt');
 
-const DOMAIN_STUDENT = '@estudiantec.cr';  // ajusta si usas variantes
+const DOMAIN_STUDENT = '@estudiante.tec.ac.cr';  // ajusta si usas variantes
 const DOMAIN_TEACHER = '@itcr.ac.cr';
 
 function isValidByRole(email, role) {

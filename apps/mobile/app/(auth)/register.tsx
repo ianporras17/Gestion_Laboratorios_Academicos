@@ -4,7 +4,7 @@ import { api, ApiError } from '../../lib/api';
 import { saveToken } from '../../lib/auth';
 import { router } from 'expo-router';
 
-const STUDENT_DOMAINS = ['@estudiante.tec.ac.cr', '@estudiantec.cr'];
+const STUDENT_DOMAINS = ['@estudiante.tec.ac.cr'];
 const TEACHER_DOMAINS = ['@itcr.ac.cr'];
 
 function domainMatchesRole(email: string, role: 'student'|'teacher') {

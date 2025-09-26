@@ -7,6 +7,9 @@ const routes = require('./routes');
 
 const app = express();
 
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+
 // Middlewares base
 app.use(express.json());
 app.use(cors({ origin: true, credentials: true }));
@@ -23,5 +26,8 @@ app.use((req, _res, next) => { console.log('[REQ]', req.method, req.url); next()
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`API listening on http://localhost:${port}`));
+
+
+require('./jobs/scheduler').start();
 
 module.exports = app;
