@@ -373,13 +373,13 @@ async function notifyIssues(req, res) {
   const by = req.user?.id || null;
 
   try {
-    // Si tienes tabla notifications, descomenta y usa:
-    // const q = `
-    //   INSERT INTO notifications (request_id, created_by, type, message)
-    //   VALUES ($1, $2, $3, $4)
-    //   RETURNING id, created_at
-    // `;
-    // const { rows } = await pool.query(q, [requestId, by, type, message]);
+
+     const q = `
+       INSERT INTO notifications (request_id, created_by, type, message)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, created_at
+     `;
+     const { rows } = await pool.query(q, [requestId, by, type, message]);
 
     console.log('[notifyIssues]', { requestId, by, type, message });
     return res.json({ ok: true, request_id: requestId, type });

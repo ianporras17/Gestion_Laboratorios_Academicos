@@ -1,0 +1,977 @@
+{
+  "info": {
+    "_postman_id": "4a4b6d1c-2ad8-4c5c-9d6d-2b3d0c2e7c11",
+    "name": "Seeds – Módulo 2 (Completo)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "chatgpt"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080/api"
+    },
+    {
+      "key": "email_tech",
+      "value": "tecnico@itcr.ac.cr"
+    },
+    {
+      "key": "password_tech",
+      "value": "ClaveFuerte123"
+    },
+    {
+      "key": "email_admin",
+      "value": "admin@tec.ac.cr"
+    },
+    {
+      "key": "password_admin",
+      "value": "ClaveFuerte123"
+    },
+    {
+      "key": "token_tech",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "lab_id",
+      "value": ""
+    },
+    {
+      "key": "resource_id",
+      "value": ""
+    },
+    {
+      "key": "material_id",
+      "value": ""
+    },
+    {
+      "key": "request_id",
+      "value": ""
+    },
+    {
+      "key": "delivery_id",
+      "value": ""
+    },
+    {
+      "key": "maintenance_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login TECH",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email_tech}}\",\n  \"password\": \"{{password_tech}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let json={};try{json=pm.response.json()}catch(e){}",
+                  "if(json.token){pm.environment.set('token_tech', json.token);}",
+                  "pm.test('Saved token_tech', ()=>pm.expect(!!pm.environment.get('token_tech')).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login ADMIN",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email_admin}}\",\n  \"password\": \"{{password_admin}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let json={};try{json=pm.response.json()}catch(e){}",
+                  "if(json.token){pm.environment.set('token_admin', json.token);}",
+                  "pm.test('Saved token_admin', ()=>pm.expect(!!pm.environment.get('token_admin')).to.be.true);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sanity – Show Variables",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_tech}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('ENV base_url', pm.environment.get('base_url'));",
+              "console.log('ENV token_tech exists?', !!pm.environment.get('token_tech'));",
+              "console.log('ENV request_id', pm.environment.get('request_id'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2.1 – Approved",
+      "item": [
+        {
+          "name": "Approved - List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/approved",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approved"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let data=[]; try{ data = pm.response.json(); }catch(e){}",
+                  "let rid=null;",
+                  "if (Array.isArray(data) && data.length){",
+                  "  const first = data[0];",
+                  "  rid = first.id || first.request_id || first.requestId || (first.request && (first.request.id || first.request.request_id || first.request.requestId));",
+                  "}",
+                  "if (rid){ pm.environment.set('request_id', rid); }",
+                  "pm.test('Saved request_id', function(){ pm.expect(!!pm.environment.get('request_id'), 'No approved requests found or response lacks id fields').to.be.true; });",
+                  "console.log('Approved list first item:', JSON.stringify(data && data[0], null, 2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Approved - Validate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/approved/{{request_id}}/validate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approved",
+                "{{request_id}}",
+                "validate"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Validación previa\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Approved - Deliver",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/approved/{{request_id}}/deliver",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approved",
+                "{{request_id}}",
+                "deliver"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"observations\": \"Entrega (auto-items desde request_items)\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j={};try{j=pm.response.json()}catch(e){}",
+                  "if(j.delivery&&(j.delivery.id||j.delivery.delivery_id)){pm.environment.set('delivery_id', j.delivery.id||j.delivery.delivery_id);}",
+                  "pm.test('Saved delivery_id',()=>pm.expect(!!pm.environment.get('delivery_id')).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Approved - Return",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/approved/deliveries/{{delivery_id}}/return",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approved",
+                "deliveries",
+                "{{delivery_id}}",
+                "return"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"condition\": \"OK\",\n  \"notes\": \"Devolución completa\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Approved - Notify",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/approved/{{request_id}}/notify",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approved",
+                "{{request_id}}",
+                "notify"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"audience\": \"SOLICITANTE\",\n  \"type\": \"RETRASO\",\n  \"message\": \"Retraso detectado\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2.2 – Inventory",
+      "item": [
+        {
+          "name": "Equipment - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/inventory/equipment",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "inventory",
+                "equipment"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lab_id\": \"{{lab_id}}\",\n  \"name\": \"Osciloscopio\",\n  \"code\": \"EQ-OSC-001\",\n  \"location\": \"Edif A\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j={};try{j=pm.response.json()}catch(e){}",
+                  "if(j.id||j.resource_id){pm.environment.set('resource_id', j.id||j.resource_id);}",
+                  "pm.test('Saved resource_id',()=>pm.expect(!!pm.environment.get('resource_id')).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Equipment - Edit",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/inventory/equipment/{{resource_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "inventory",
+                "equipment",
+                "{{resource_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"location\": \"Edif B\",\n  \"name\": \"Osciloscopio TDS\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Equipment - Change Status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/inventory/resources/{{resource_id}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "inventory",
+                "resources",
+                "{{resource_id}}",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"EN_MANTENIMIENTO\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Materials - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/inventory/materials",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "inventory",
+                "materials"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lab_id\": \"{{lab_id}}\",\n  \"name\": \"Guantes\",\n  \"code\": \"MAT-GL-001\",\n  \"min_stock\": 50,\n  \"initial_stock\": 120\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j={};try{j=pm.response.json()}catch(e){}",
+                  "if(j.id||j.material_id){pm.environment.set('material_id', j.id||j.material_id);}",
+                  "pm.test('Saved material_id',()=>pm.expect(!!pm.environment.get('material_id')).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Materials - Adjust Stock",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/inventory/materials/{{material_id}}/stock",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "inventory",
+                "materials",
+                "{{material_id}}",
+                "stock"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"delta\": -20,\n  \"reason\": \"Consumo\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Materials - Low Stock",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/inventory/materials/low-stock",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "inventory",
+                "materials",
+                "low-stock"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Resources - Query",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/inventory/resources?type=EQUIPO&status=EN_MANTENIMIENTO&labId={{lab_id}}&q=Oscilo",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "inventory",
+                "resources"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "EQUIPO"
+                },
+                {
+                  "key": "status",
+                  "value": "EN_MANTENIMIENTO"
+                },
+                {
+                  "key": "labId",
+                  "value": "{{lab_id}}"
+                },
+                {
+                  "key": "q",
+                  "value": "Oscilo"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Movements - Manual OUT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/inventory/movements",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "inventory",
+                "movements"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resource_id\": \"{{material_id}}\",\n  \"movement_type\": \"OUT\",\n  \"quantity\": 5,\n  \"reason\": \"Ajuste manual\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2.3 – Maintenance",
+      "item": [
+        {
+          "name": "Maintenance - Schedule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/maintenance/schedule",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "maintenance",
+                "schedule"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceId\": \"{{resource_id}}\",\n  \"labId\": \"{{lab_id}}\",\n  \"type\": \"PREVENTIVO\",\n  \"scheduledAt\": \"2025-09-30T14:00:00Z\",\n  \"notes\": \"Chequeo\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j={};try{j=pm.response.json()}catch(e){}",
+                  "if(j.id||j.maintenance_id){pm.environment.set('maintenance_id', j.id||j.maintenance_id);}",
+                  "pm.test('Saved maintenance_id',()=>pm.expect(!!pm.environment.get('maintenance_id')).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Maintenance - Start",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/maintenance/{{maintenance_id}}/start",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "maintenance",
+                "{{maintenance_id}}",
+                "start"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"performedAt\": \"2025-09-30T14:05:00Z\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Maintenance - Complete (OK)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/maintenance/{{maintenance_id}}/complete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "maintenance",
+                "{{maintenance_id}}",
+                "complete"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"result\": \"OK\",\n  \"usedMaterials\": [{\"code\":\"REP-123\",\"name\":\"Correa\",\"qty\":1}],\n  \"notes\": \"Listo\",\n  \"performedAt\": \"2025-09-30T15:30:00Z\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Maintenance - List by Resource",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/maintenance?resourceId={{resource_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "maintenance"
+              ],
+              "query": [
+                {
+                  "key": "resourceId",
+                  "value": "{{resource_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Maintenance - Get by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/maintenance/{{maintenance_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "maintenance",
+                "{{maintenance_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2.4 – Reports",
+      "item": [
+        {
+          "name": "Reports - Usage",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reports/usage",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reports",
+                "usage"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reports - Inventory",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reports/inventory",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reports",
+                "inventory"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reports - Maintenance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reports/maintenance",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reports",
+                "maintenance"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reports - Export PDF (usage)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reports/export?kind=usage&format=pdf",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reports",
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "kind",
+                  "value": "usage"
+                },
+                {
+                  "key": "format",
+                  "value": "pdf"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reports - Export XLSX (inventory)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_tech}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reports/export?kind=inventory&format=xlsx",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reports",
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "kind",
+                  "value": "inventory"
+                },
+                {
+                  "key": "format",
+                  "value": "xlsx"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

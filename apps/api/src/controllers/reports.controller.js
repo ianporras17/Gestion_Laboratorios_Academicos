@@ -44,8 +44,9 @@ async function getInventoryData() {
     LIMIT 500;
   `;
   const matSQL = `
-    SELECT id, name, 'MATERIAL'::text AS type, stock, low_stock_threshold
-    FROM materials
+    SELECT id, name, 'MATERIAL'::text AS type, stock, min_stock
+    FROM resources
+    WHERE type = 'MATERIAL'
     ORDER BY name
     LIMIT 500;
   `;

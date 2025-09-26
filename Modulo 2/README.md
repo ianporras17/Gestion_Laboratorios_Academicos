@@ -1,47 +1,70 @@
-# README -- Módulos 2.1 Gestión de Solicitudes Aprobadas, 2.2 Gestión de Inventario y 2.3 Gestión de Mantenimientos
+# README – Módulo 2 (Personal Técnico y Encargados) — **Guía de Pruebas Completa**
 
-Este documento explica cómo preparar datos, qué roles/correos son válidos, y cómo probar manualmente en Postman las funcionalidades:
+Este README está listo para ejecutar **todas** las pruebas del **Módulo 2** (2.1–2.4) con Postman/cURL y con datos mínimos de ejemplo.
+Incluye *gotchas* del backend y cómo solucionarlos para que **todo** funcione end‑to‑end.
 
-- **2.1**: Validación previa, entrega, devolución y notificaciones de solicitudes aprobadas.  
-- **2.2**: Inventario de equipos y materiales (alta/baja/edición, estados, stock y movimientos).  
-- **2.3**: Mantenimientos preventivos/correctivos (programación, ejecución, cierre, estado y trazabilidad).
+## Alcance
+- **2.1** Solicitudes aprobadas: listar, validar, entregar, devolver, notificar.
+- **2.2** Inventario: equipos, materiales, estados, movimientos y alertas.
+- **2.3** Mantenimientos: programación, inicio, cierre, historial y detalle.
+- **2.4** Reportes: uso, inventario, mantenimiento, exportación PDF/XLSX.
 
-Backend: `apps/api` (Node + Express + PostgreSQL). Base de datos en Docker (servicio `db`).
+Backend: `apps/api` (Node + Express + PostgreSQL).  
+Base de datos: Docker (`db`).
 
 ---
 
 ## 0) Reglas de correo por rol (obligatorias)
 
-El backend fuerza que el dominio del correo coincida con el rol:
+| Rol     | Dominio requerido     |
+|---------|-----------------------|
+| student | @estudiantec.cr       |
+| teacher | @itcr.ac.cr           |
+| TECH    | @itcr.ac.cr           |
+| ADMIN   | @tec.ac.cr            |
 
-| Rol     | Dominio requerido         |
-|---------|---------------------------|
-| student | @estudiantec.cr     |
-| teacher | @itcr.ac.cr               |
-| TECH    | @itcr.ac.cr               |
-| ADMIN   | @tec.ac.cr                |
-
-Si no coincide:
-
-- **/auth/register** → 422 Unprocessable Entity  
-- **/auth/login** (para cuentas antiguas/erróneas) → 403 Forbidden
+Si no coincide:  
+- `/auth/register` → `422 Unprocessable Entity`  
+- `/auth/login` → `403 Forbidden`
 
 ---
 
 ## 1) Puesta en marcha
 
-### 1.1 Levantar Docker
+### 1.1 Levantar servicios
+**Windows / PowerShell (desde la raíz del repo):**
+```powershell
+docker compose up -d --build
+```
+
+**Linux/macOS:**
 ```bash
 docker compose up -d --build
 ```
 
-### 1.2 Migraciones (desde apps/api)
-```bash
-cd apps/api
-node src/db/migrate.js
+### 1.2 Migraciones
+**Windows (desde la raíz del repo):**
+```powershell
+node .\apps\api\src\db\migrate.js
 ```
 
-### 1.3 Verificar API
+**Linux/macOS:**
+```bash
+node apps/api/src/db/migrate.js
+```
+
+### 1.3 Iniciar API en modo dev (si no está en Docker)
+**Windows:**
+```powershell
+node .\apps\api\src\server.js
+```
+
+**Linux/macOS:**
+```bash
+node apps/api/src/server.js
+```
+
+### 1.4 Healthcheck
 ```http
 GET http://localhost:8080/health
 ```
@@ -50,124 +73,89 @@ GET http://localhost:8080/health
 
 ## 2) Usuarios y Tokens
 
-### 2.1 Registro por API
-Headers: `Content-Type: application/json`
+Registra al menos (vía API):
+- `ADMIN` (`admin@tec.ac.cr`)
+- `TECH` (`tecnico@itcr.ac.cr`)
+- `TEACHER` o `STUDENT` (solicitante), por ejemplo `docente.demo@itcr.ac.cr`
 
-**ADMIN**
-```http
-POST http://localhost:8080/api/auth/register
-{
-  "email": "admin.pruebas@tec.ac.cr",
-  "password": "ClaveFuerte!23",
-  "role": "ADMIN",
-  "full_name": "Admin Pruebas",
-  "id_code": "A-001",
-  "career_or_department": "Escuela de Computación",
-  "phone": "+50670001234"
-}
-```
-
-**TECH**
-```http
-POST http://localhost:8080/api/auth/register
-{
-  "email": "tecnico1@itcr.ac.cr",
-  "password": "ClaveFuerte!23",
-  "role": "TECH",
-  "full_name": "Técnico Uno",
-  "id_code": "T-001",
-  "career_or_department": "LabOps",
-  "phone": "+50670004567"
-}
-```
-
-**TEACHER / STUDENT (para solicitudes)**
-```http
-POST http://localhost:8080/api/auth/register
-{
-  "email": "docente.demo@itcr.ac.cr",
-  "password": "ClaveFuerte!23",
-  "role": "teacher",
-  "full_name": "Docente Demo",
-  "id_code": "D-100",
-  "career_or_department": "Escuela X"
-}
-```
-
-Respuesta esperada: `201 Created` con `{ "token": "...", "user": {...} }`.
-
-### 2.2 Login
-```http
-POST http://localhost:8080/api/auth/login
-{
-  "email": "tecnico1@itcr.ac.cr",
-  "password": "ClaveFuerte!23"
-}
-```
-→ `200 OK` con `{ token, user }`.
+**Login** para obtener tokens: `/api/auth/login` → `{ token, user }`
 
 ---
 
-## 3) Variables recomendadas en Postman
+## 3) Variables en Postman (Environment)
+El Postman (Environment) esta en la carpeta modulo 2, este se importa dentro de postman
 
-Crear **Environment**:
 ```
 base_url       = http://localhost:8080/api
-token_admin    = <token del admin>
-token_tech     = <token del tech>
-lab_id         = <se completa en ejecuciones>
-resource_id    = <se completa en ejecuciones>
-material_id    = <se completa en ejecuciones>
-request_id     = <se completa en ejecuciones>
-delivery_id    = <se completa en ejecuciones>
-maintenance_id = <se completa en ejecuciones>
+token_admin    = <se autollenará al hacer login>
+token_tech     = <se autollenará al hacer login>
+lab_id         = <se llenará con el seed>
+resource_id    = <se llenará con el seed o respuesta>
+material_id    = <se llenará con el seed o respuesta>
+request_id     = <se llenará al listar aprobadas>
+delivery_id    = <se llenará al entregar>
+maintenance_id = <se llenará al programar mantenimiento>
 ```
 
-Headers en todas las peticiones:
+Headers comunes:
 ```
 Authorization: Bearer {{token_tech}}   (o {{token_admin}} si aplica)
-Accept: application/json
-Content-Type: application/json          (en POST/PATCH/DELETE)
+Content-Type: application/json
 ```
 
 ---
 
-## 4) Seed de datos (SQL) para pruebas rápidas
+## 4) Seed mínimo de datos (SQL listo)
 
-Ejecuta cada bloque con:
-```bash
-docker compose exec -T db psql -U labtec -d labtec -c "<AQUI_TU_SQL>"
-```
+> Ejecuta cada bloque así:
+>
+> **Windows (PowerShell):**
+> ```powershell
+> docker compose exec -T db psql -U labtec -d labtec -c "<TU_SQL_AQUI>"
+> ```
+> **Linux/macOS:**
+> ```bash
+> docker compose exec -T db psql -U labtec -d labtec -c "<TU_SQL_AQUI>"
+> ```
 
-### 4.1 Laboratorio, equipo y material
+### 4.1 Laboratorio, Equipo, Material
 ```sql
 -- Laboratorio
 INSERT INTO laboratories (name, code, location)
-VALUES ('Lab Electrónica','LAB-EL','Edif A') RETURNING id;
+VALUES ('Lab Prueba','LAB-PR','Edif B')
+RETURNING id;
 ```
-Guarda el id (`{{lab_id}}`).
 
 ```sql
--- Equipo de ejemplo
+-- Equipo (buscable por code)
 INSERT INTO resources (lab_id, type, name, code, status, location)
-VALUES ('{{lab_id}}','EQUIPO','Fuente DC','EQ-FTE-001','DISPONIBLE','Rack 1') RETURNING id;
+SELECT id, 'EQUIPO', 'Fuente DC', 'EQ-FTE-01', 'DISPONIBLE', 'Rack 1'
+FROM laboratories WHERE code='LAB-PR'
+RETURNING id;
 ```
 
 ```sql
--- Material de ejemplo
+-- Material (con stock y umbral)
 INSERT INTO resources (lab_id, type, name, code, status, stock, min_stock)
-VALUES ('{{lab_id}}','MATERIAL','Guantes de látex','MAT-GL-001','DISPONIBLE',120,50) RETURNING id;
+SELECT id, 'MATERIAL', 'Guantes', 'MAT-GL-01', 'DISPONIBLE', 100, 20
+FROM laboratories WHERE code='LAB-PR'
+RETURNING id;
 ```
 
-### 4.2 Requisitos/certificaciones y solicitud aprobada (para 2.1)
+### 4.2 Certificación, requisito y otorgamiento al solicitante
+> Asegúrate de registrar previamente al solicitante (teacher/student) por API. Ajusta el correo si usaste otro.
 ```sql
--- Certificación y requisito para el lab
+-- Certificación genérica
 INSERT INTO certifications (code, name) VALUES ('IND-SEG','Inducción Seguridad')
 ON CONFLICT (code) DO NOTHING;
+```
 
+```sql
+-- Requisito del laboratorio
 INSERT INTO lab_requirements (lab_id, certification_id, requirement_type)
-SELECT '{{lab_id}}', c.id, 'SEGURIDAD'
-FROM certifications c WHERE c.code='IND-SEG'
+SELECT l.id, c.id, 'SEGURIDAD'
+FROM laboratories l, certifications c
+WHERE l.code='LAB-PR' AND c.code='IND-SEG'
 ON CONFLICT DO NOTHING;
 ```
 
@@ -180,219 +168,241 @@ WHERE u.email='docente.demo@itcr.ac.cr' AND c.code='IND-SEG'
 ON CONFLICT DO NOTHING;
 ```
 
+### 4.3 Solicitud APROBADA con items
 ```sql
 -- Crear solicitud APROBADA
 INSERT INTO requests (user_id, lab_id, status, purpose)
-SELECT u.id, '{{lab_id}}', 'APROBADA', 'Práctica 1'
-FROM users u WHERE u.email='docente.demo@itcr.ac.cr'
+SELECT u.id, l.id, 'APROBADA', 'Práctica 1'
+FROM users u, laboratories l
+WHERE u.email='docente.demo@itcr.ac.cr' AND l.code='LAB-PR'
 RETURNING id;
 ```
 
 ```sql
--- Ítem: 1 equipo
+-- Agregar 1 equipo como ítem (toma el EQ-FTE-01)
 INSERT INTO request_items (request_id, resource_id, quantity)
-VALUES ('{{request_id}}','{{resource_id}}',1);
+SELECT r.id, e.id, 1
+FROM (SELECT id FROM requests ORDER BY created_at DESC LIMIT 1) r,
+     (SELECT id FROM resources WHERE code='EQ-FTE-01' LIMIT 1) e;
+```
+
+*(Opcional) si quieres que la entrega descuente también material, agrega un item del material:*  
+```sql
+INSERT INTO request_items (request_id, resource_id, quantity)
+SELECT r.id, m.id, 2
+FROM (SELECT id FROM requests ORDER BY created_at DESC LIMIT 1) r,
+     (SELECT id FROM resources WHERE code='MAT-GL-01' LIMIT 1) m;
 ```
 
 ---
 
-## 5) 2.1 -- Gestión de Solicitudes Aprobadas (TECH / ADMIN)
+## 5) 2.1 – Solicitudes aprobadas (TECH/ADMIN)
 
 **Base URL:** `{{base_url}}/approved`
 
 - **Listar aprobadas**
-```http
-GET {{base_url}}/approved
-```
+  ```http
+  GET {{base_url}}/approved
+  ```
+  > Guarda `{{request_id}}` de la primera fila.
 
 - **Validación previa**
-```http
-POST {{base_url}}/approved/{{request_id}}/validate
-```
+  ```http
+  POST {{base_url}}/approved/{{request_id}}/validate
+  Body opcional: { "notes": "Validación previa" }
+  ```
 
-- **Registrar entrega**
-```http
-POST {{base_url}}/approved/{{request_id}}/deliver
-```
+- **Registrar entrega** *(NO pases items; los usa desde `request_items`)*
+  ```http
+  POST {{base_url}}/approved/{{request_id}}/deliver
+  Body: { "observations": "Entrega inicial" }
+  ```
+  > Guarda `{{delivery_id}}` de la respuesta.  
+  > **Efecto:** recurso(s) → `RESERVADO` + movimiento `OUT` (material: stock−).
 
-- **Registrar devolución**
-```http
-POST {{base_url}}/approved/deliveries/{{delivery_id}}/return
-Body:
-{ "condition": "OK", "notes": "Sin novedades" }
-```
+- **Registrar devolución** *(NO pases items; se espejan de `delivery_items`)*
+  ```http
+  POST {{base_url}}/approved/deliveries/{{delivery_id}}/return
+  Body: { "condition": "OK", "notes": "Devolución completa" }
+  ```
+  > **Efecto:** recurso(s) → `DISPONIBLE` + movimiento `IN` (material: stock = sin cambio).
 
-- **Notificación opcional**
-```http
-POST {{base_url}}/approved/{{request_id}}/notify
-Body:
-{ "type":"RETRASO", "message":"No devolvió a tiempo" }
-```
+- **Notificación (stub hasta habilitar INSERT)**
+  ```http
+  POST {{base_url}}/approved/{{request_id}}/notify
+  Body: { "audience":"SOLICITANTE", "type":"RETRASO", "message":"No devolvió a tiempo" }
+  ```
 
-**Estados esperados**:  
-Entrega → recurso `RESERVADO` + movimiento `OUT`.  
-Devolución → recurso `DISPONIBLE` + movimiento `IN`.
-
-Errores esperados: `403`, `404`, `409`, `500`.
+**Errores típicos y solución**
+- `Cannot POST /api/approved//validate` → faltó `{{request_id}}` (repite “Listar aprobadas”).
+- `403` → token sin rol TECH/ADMIN.
+- `409` → estado incompatible (p.ej., entregar dos veces).
 
 ---
 
-## 6) 2.2 -- Gestión de Inventario (TECH / ADMIN)
+## 6) 2.2 – Inventario (TECH/ADMIN)
 
 **Base URL:** `{{base_url}}/inventory`  
-**Estados:** `DISPONIBLE`, `RESERVADO`, `EN_MANTENIMIENTO`, `INACTIVO`.
-
-> **Importante:** en **alta de equipos** el body usa **snake_case** (`lab_id`, `name`, `code`, …).
+**Estados válidos:** `DISPONIBLE`, `RESERVADO`, `EN_MANTENIMIENTO`, `INACTIVO`.
 
 ### 6.1 Equipos
-- **Alta**
 ```http
 POST {{base_url}}/inventory/equipment
-{ "lab_id": "{{lab_id}}", "name": "Osciloscopio Tektronix", "code": "EQ-OSC-001", "location": "Edif A - 2do piso" }
+{ "lab_id":"{{lab_id}}", "name":"Osciloscopio", "code":"EQ-OSC-001", "location":"Edif A" }
 ```
-
-- **Edición**
 ```http
 PATCH {{base_url}}/inventory/equipment/{{resource_id}}
-{ "location": "Edif A - 3er piso", "name": "Osciloscopio TDS 2024" }
+{ "location":"Edif B", "name":"Osciloscopio TDS" }
 ```
-
-- **Baja**
 ```http
 DELETE {{base_url}}/inventory/equipment/{{resource_id}}
 ```
-
-- **Cambio de estado**
 ```http
 POST {{base_url}}/inventory/resources/{{resource_id}}/status
-{ "status": "EN_MANTENIMIENTO" }
+{ "status":"EN_MANTENIMIENTO" }
 ```
 
 ### 6.2 Materiales
-- **Alta con stock inicial**
 ```http
 POST {{base_url}}/inventory/materials
-{ "lab_id": "{{lab_id}}", "name": "Guantes de látex", "code": "MAT-GL-001", "min_stock": 50, "initial_stock": 120 }
+{ "lab_id":"{{lab_id}}", "name":"Guantes", "code":"MAT-GL-001", "min_stock":50, "initial_stock":120 }
 ```
-
-- **Ajuste de stock**
 ```http
 POST {{base_url}}/inventory/materials/{{material_id}}/stock
-{ "delta": -30, "reason": "Consumo práctica 1" }
+{ "delta": -20, "reason":"Consumo" }
 ```
-
-- **Alertas por bajo stock**
 ```http
 GET {{base_url}}/inventory/materials/low-stock
 ```
 
 ### 6.3 Consulta y movimientos
 ```http
-GET {{base_url}}/inventory/resources?type=EQUIPO&status=DISPONIBLE&labId={{lab_id}}&q=oscil
+GET {{base_url}}/inventory/resources?type=EQUIPO&status=EN_MANTENIMIENTO&labId={{lab_id}}&q=Oscilo
 ```
-
 ```http
 POST {{base_url}}/inventory/movements
-{ "resource_id": "{{material_id}}", "movement_type": "OUT", "quantity": 10, "reason": "Ajuste inventario" }
+{ "resource_id":"{{material_id}}", "movement_type":"OUT", "quantity":5, "reason":"Ajuste manual" }
 ```
 
-Errores esperados: `403`, `409`, `422`, `500`.
+**Validaciones clave**
+- Stock **no** puede ser negativo.
+- `code` es **único** por recurso.
+- Estados solo de la lista válida.
 
 ---
 
-## 7) 2.3 -- Gestión de Mantenimientos (TECH / ADMIN)
+## 7) 2.3 – Mantenimientos (TECH/ADMIN)
 
 **Base URL:** `{{base_url}}/maintenance`  
-**Tipos:** `PREVENTIVO`, `CORRECTIVO` (enum `maint_type_enum`).  
-**Resultados:** `OK`, `INACTIVAR`, `OBSERVACION` (enum `maint_result_enum`).  
-**Estados recurso:** `EN_MANTENIMIENTO` durante ejecución; al cerrar: `DISPONIBLE` o `INACTIVO`.
+**Tipos:** `PREVENTIVO`, `CORRECTIVO`  
+**Resultados:** `OK`, `INACTIVAR`, `OBSERVACION`
 
-### 7.1 Programación
 ```http
 POST {{base_url}}/maintenance/schedule
 {
-  "resourceId": "{{resource_id}}",
-  "labId": "{{lab_id}}",
-  "type": "PREVENTIVO",
-  "scheduledAt": "2025-09-30T14:00:00Z",
-  "technicianId": "{{tech_user_id}}",    // opcional
-  "notes": "Chequeo previo a prácticas"
+  "resourceId":"{{resource_id}}",
+  "labId":"{{lab_id}}",
+  "type":"PREVENTIVO",
+  "scheduledAt":"2025-09-30T14:00:00Z",
+  "notes":"Chequeo previo"
 }
 ```
-**Efecto:** crea registro en `maintenances` (solo programación).
-
-### 7.2 Inicio (salida a mantenimiento)
 ```http
 PATCH {{base_url}}/maintenance/{{maintenance_id}}/start
-{ "performedAt": "2025-09-30T14:05:00Z" }   // opcional
+{ "performedAt":"2025-09-30T14:05:00Z" }
 ```
-**Efecto:** `resources.status = EN_MANTENIMIENTO` + movimiento `MAINTENANCE_OUT`.
-
-### 7.3 Cierre (registro técnico + repuestos + estado)
 ```http
 PATCH {{base_url}}/maintenance/{{maintenance_id}}/complete
 {
-  "result": "OK",
-  "usedMaterials": [
-    { "code": "REP-123", "name": "Correa 3mm", "qty": 1 }
-  ],
-  "notes": "Se cambió correa y lubricó. Queda operando.",
-  "performedAt": "2025-09-30T15:30:00Z"
+  "result":"OK",
+  "usedMaterials":[{"code":"REP-123","name":"Correa","qty":1}],
+  "notes":"Listo",
+  "performedAt":"2025-09-30T15:30:00Z"
 }
 ```
-**Efecto:**
-- Actualiza `maintenances.result`, `used_materials` (JSONB), `notes`, `performed_at`.
-- `resources.last_maintenance_at = performed_at`.
-- Cambia estado del recurso:
-  - `OK`/`OBSERVACION` → `DISPONIBLE`
-  - `INACTIVAR` → `INACTIVO`
-- Inserta movimiento `MAINTENANCE_IN`.
-- **(TODO)** Notificar a ADMIN/encargados cuando el recurso vuelva a `DISPONIBLE`.
-
-### 7.4 Historial y detalle
 ```http
 GET {{base_url}}/maintenance?resourceId={{resource_id}}
-GET {{base_url}}/maintenance?labId={{lab_id}}&from=2025-09-01&to=2025-10-01
 GET {{base_url}}/maintenance/{{maintenance_id}}
 ```
 
-**Errores comunes (y solución):**
-- `401 Missing token` → agrega `Authorization: Bearer …`.
-- `resource_id null` en schedule → verifica `Content-Type: application/json` y que envías **IDs reales**.
-- Error tipo `could not determine data type of parameter $4` → corregido con casteos en el controller (ya aplicado).
+**Efectos esperados**
+- `start` → `resources.status = EN_MANTENIMIENTO` + movimiento `MAINTENANCE_OUT`.
+- `complete` → estado final `DISPONIBLE` (OK/OBSERVACION) o `INACTIVO` (INACTIVAR) + `MAINTENANCE_IN`.
 
 ---
 
-## 8) Checklist mínimo de validación
+## 8) 2.4 – Reportes Operativos
 
-- Registro/login respetan dominios por rol.  
-- `/api/admin/*` solo accesible con ADMIN.  
-- TECH/ADMIN pueden usar 2.1, 2.2 y 2.3.  
-- 2.1: Entrega → `RESERVADO` + movimiento `OUT`.  
-- 2.1: Devolución → `DISPONIBLE` + movimiento `IN`.  
-- 2.2: Materiales no permiten stock negativo; UNIQUE en `code`.  
-- 2.2: Alta de equipos usa **snake_case** (`lab_id`, `name`, `code`).  
-- 2.3: `start` pone `EN_MANTENIMIENTO` + `MAINTENANCE_OUT`.  
-- 2.3: `complete` actualiza `result`, `used_materials`, `notes`, `performed_at`, cambia estado a `DISPONIBLE/INACTIVO` + `MAINTENANCE_IN`.
+**Base URL:** `{{base_url}}/reports`
 
----
-
-## 9) Troubleshooting
-
-- **422 Invalid role/dominio** → revisa email vs rol.  
-- **401** → token ausente/expirado.  
-- **403** → rol sin permiso.  
-- **404** → IDs inexistentes.  
-- **409** → colisiones de estado/stock/unique `code`.  
-- **500 (en mantenimientos)** → usa valores válidos de enum (`type`, `result`) y formato ISO en fechas.
-
-Comandos útiles:
-```bash
-cd apps/api
-node src/db/migrate.js
-
-docker compose exec -T db psql -U labtec -d labtec -c "\dT+ public.user_role"
-docker compose exec -T db psql -U labtec -d labtec -c "\d+ public.resources"
-docker compose exec -T db psql -U labtec -d labtec -c "SELECT * FROM maintenances ORDER BY created_at DESC LIMIT 5;"
-docker compose exec -T db psql -U labtec -d labtec -c "SELECT * FROM inventory_movements ORDER BY created_at DESC LIMIT 5;"
+```http
+GET {{base_url}}/reports/usage
+GET {{base_url}}/reports/inventory
+GET {{base_url}}/reports/maintenance
+GET {{base_url}}/reports/export?kind=usage&format=pdf
+GET {{base_url}}/reports/export?kind=inventory&format=xlsx
 ```
+
+**Nota producción:** asegura `exceljs` en `dependencies` (no solo `devDependencies`).
+
+---
+
+## 9) Gotchas & Fixes (importante)
+
+### 9.1 `/reports/inventory` consulta tabla incorrecta
+En el código original, inventario usa `materials` (no existe) y `low_stock_threshold` (columna no existente). Debe leer de `resources`:
+
+```js
+// En reports.controller.js, reemplaza el query de materiales por:
+const matSQL = `
+  SELECT id, name, 'MATERIAL'::text AS type, stock, min_stock
+  FROM resources
+  WHERE type = 'MATERIAL'
+  ORDER BY name
+  LIMIT 500;
+`;
+```
+
+### 9.2 Notificaciones (2.1.5) están en stub
+Habilita el INSERT (ya existe migración `notifications`):
+```js
+// En approved.controller.js dentro de notifyIssues:
+const q = `
+  INSERT INTO notifications (request_id, user_id, type, message, audience)
+  VALUES ($1, $2, $3, $4, 'SOLICITANTE')
+  RETURNING id, created_at
+`;
+const { rows } = await pool.query(q, [requestId, by, type, message]);
+return res.json({ ok: true, request_id: requestId, type, notification_id: rows[0].id });
+```
+
+---
+
+## 10) Troubleshooting rápido
+
+- **URL con doble “//”** (p.ej. `/approved//validate`) → faltó `{{request_id}}`. Corre “Listar aprobadas” antes.
+- **`401`** → falta/expiró token: re‑login.
+- **`403`** → rol no permitido: usa TECH/ADMIN.
+- **`404`** → ID inexistente o borrado.
+- **`409`** → conflicto de estado (entrega duplicada, stock insuficiente, etc.).
+- **Export XLSX falla** → mueve `exceljs` a `dependencies` y reinstala.
+
+---
+
+## 11) Reset de BD (solo desarrollo)
+```sql
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+```
+Luego corre migraciones otra vez.
+
+---
+
+## 12) Checklist final (debe cumplirse todo)
+
+- [ ] Roles ↔ dominios correctos en registro/login.
+- [ ] 2.1: Entrega cambia estados/stock y genera `OUT`; Devolución genera `IN`.
+- [ ] 2.2: Stock no negativo, `code` único, alertas de bajo stock responden.
+- [ ] 2.3: `start`/`complete` cambian estado y registran movimientos `MAINTENANCE_*`.
+- [ ] 2.4: Endpoints calculan y exportan; inventario corregido a `resources`.
+- [ ] (Opcional) Notificaciones persisten tras habilitar `INSERT`.
