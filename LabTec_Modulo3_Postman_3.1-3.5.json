@@ -1,0 +1,945 @@
+{
+  "info": {
+    "name": "LabTec – Módulo 3 (Usuarios) · Endpoints 3.1–3.5",
+    "_postman_id": "e2d4c6d7-3f9e-4e7a-bb5d-1758925212A",
+    "description": "Colección para probar autenticación, perfiles, disponibilidad, reservas/préstamos, historial, notificaciones y mensajería.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00 · Auth & Perfil (3.1)",
+      "item": [
+        {
+          "name": "Auth · Register",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alguien@itcr.ac.cr\",\n  \"password\": \"Password!123\",\n  \"role\": \"student\",\n  \"full_name\": \"Nombre Apellido\",\n  \"id_code\": \"20241234\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Auth · Login",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alguien@itcr.ac.cr\",\n  \"password\": \"Password!123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Users · Me (GET)",
+          "request": {
+            "auth": null,
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Users · Me (PATCH)",
+          "request": {
+            "auth": null,
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Nuevo Nombre\",\n  \"phone\": \"8888-8888\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Certifications · List mine",
+          "request": {
+            "auth": null,
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/me/certifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "certifications"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Certifications · Add",
+          "request": {
+            "auth": null,
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/me/certifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "certifications"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"SEG-LAB-INDUCCION\",\n  \"name\": \"Inducción Seguridad\",\n  \"obtained_at\": \"2025-09-01\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 · Catálogos & Disponibilidad (3.2)",
+      "item": [
+        {
+          "name": "Labs · List",
+          "request": {
+            "auth": null,
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/labs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "labs"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Resources · By filters",
+          "request": {
+            "auth": null,
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/resources?lab_id={{labId}}&type=campana-extraccion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "resources"
+              ],
+              "query": [
+                {
+                  "key": "lab_id",
+                  "value": "{{labId}}"
+                },
+                {
+                  "key": "type",
+                  "value": "campana-extraccion"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Availability · Search",
+          "request": {
+            "auth": null,
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/availability/search",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "availability",
+                "search"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lab_id\": \"{{labId}}\",\n  \"resource_type\": \"campana-extraccion\",\n  \"date\": \"2025-09-26\",\n  \"from\": \"08:00\",\n  \"to\": \"12:00\",\n  \"location\": \"Edificio A - Piso 2\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Availability · Calendar (weekly)",
+          "request": {
+            "auth": null,
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/availability/calendar?lab_id={{labId}}&resource_id={{resourceId}}&view=weekly&from=2025-09-22",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "availability",
+                "calendar"
+              ],
+              "query": [
+                {
+                  "key": "lab_id",
+                  "value": "{{labId}}"
+                },
+                {
+                  "key": "resource_id",
+                  "value": "{{resourceId}}"
+                },
+                {
+                  "key": "view",
+                  "value": "weekly"
+                },
+                {
+                  "key": "from",
+                  "value": "2025-09-22"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 · Reservas & Préstamos (3.3)",
+      "item": [
+        {
+          "name": "Reservations · Create",
+          "request": {
+            "auth": null,
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resource_id\": \"{{resourceId}}\",\n  \"start_time\": \"2025-09-26T10:00:00-06:00\",\n  \"end_time\": \"2025-09-26T11:30:00-06:00\",\n  \"reason\": \"Práctica #3\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Reservations · My",
+          "request": {
+            "auth": null,
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/my",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "my"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reservations · Cancel",
+          "request": {
+            "auth": null,
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/{{reservationId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "{{reservationId}}",
+                "cancel"
+              ]
+            }
+          }
+        },
+        {
+          "name": "ADMIN · Reservations · Change status",
+          "request": {
+            "auth": null,
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/reservations/{{reservationId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "reservations",
+                "{{reservationId}}",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"approved\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Loans · Create",
+          "request": {
+            "auth": null,
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/loans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "loans"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resource_id\": \"{{resourceId}}\",\n  \"start_time\": \"2025-09-26T13:00:00-06:00\",\n  \"end_time\": \"2025-09-26T15:00:00-06:00\",\n  \"reason\": \"Préstamo balanza\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Loans · My",
+          "request": {
+            "auth": null,
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/loans/my",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "loans",
+                "my"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Loans · Cancel",
+          "request": {
+            "auth": null,
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/loans/{{loanId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "loans",
+                "{{loanId}}",
+                "cancel"
+              ]
+            }
+          }
+        },
+        {
+          "name": "ADMIN · Loans · Change status",
+          "request": {
+            "auth": null,
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/loans/{{loanId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "loans",
+                "{{loanId}}",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"approved\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 · Historial & Export (3.4)",
+      "item": [
+        {
+          "name": "History · Mine",
+          "request": {
+            "auth": null,
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/history/me?from=2025-09-01&to=2025-09-30&type=all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "history",
+                "me"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2025-09-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2025-09-30"
+                },
+                {
+                  "key": "type",
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "History · Summary",
+          "request": {
+            "auth": null,
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/history/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "history",
+                "summary"
+              ]
+            }
+          }
+        },
+        {
+          "name": "History · Export PDF (link)",
+          "request": {
+            "auth": null,
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/history/export?format=pdf&delivery=link&type=all&from=2025-09-01&to=2025-09-30",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "history",
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "pdf"
+                },
+                {
+                  "key": "delivery",
+                  "value": "link"
+                },
+                {
+                  "key": "type",
+                  "value": "all"
+                },
+                {
+                  "key": "from",
+                  "value": "2025-09-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2025-09-30"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 · Notificaciones & Mensajería (3.5)",
+      "item": [
+        {
+          "name": "Notifications · List (unread)",
+          "request": {
+            "auth": null,
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications?only_unread=1&limit=50&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "only_unread",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Notifications · Mark as read",
+          "request": {
+            "auth": null,
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/{{notificationId}}/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "{{notificationId}}",
+                "read"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Messages · Create thread",
+          "request": {
+            "auth": null,
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/messages/threads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "messages",
+                "threads"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"context_type\": \"reservation\",\n  \"context_id\": \"{{reservationId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Messages · My threads",
+          "request": {
+            "auth": null,
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/messages/threads/my",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "messages",
+                "threads",
+                "my"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Messages · Thread · List messages",
+          "request": {
+            "auth": null,
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/messages/threads/{{threadId}}/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "messages",
+                "threads",
+                "{{threadId}}",
+                "messages"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Messages · Thread · Send message",
+          "request": {
+            "auth": null,
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/messages/threads/{{threadId}}/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "messages",
+                "threads",
+                "{{threadId}}",
+                "messages"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"Hola, ¿podemos ajustar el horario?\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Messages · Thread · Mark read",
+          "request": {
+            "auth": null,
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/messages/threads/{{threadId}}/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "messages",
+                "threads",
+                "{{threadId}}",
+                "read"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 · Calendarios ICS",
+      "item": [
+        {
+          "name": "ICS · General approved",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/calendar/general.ics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "calendar",
+                "general.ics"
+              ]
+            }
+          }
+        },
+        {
+          "name": "ICS · By lab",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/calendar/labs/{{labId}}.ics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "calendar",
+                "labs",
+                "{{labId}}.ics"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "teacher_token",
+      "value": ""
+    },
+    {
+      "key": "labId",
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "key": "resourceId",
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "key": "reservationId",
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "key": "loanId",
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "key": "threadId",
+      "value": "00000000-0000-0000-0000-000000000000"
+    }
+  ]
+}

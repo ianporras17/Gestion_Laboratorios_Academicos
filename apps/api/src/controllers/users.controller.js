@@ -94,7 +94,7 @@ async function getMyCerts(req, res) {
 const certValidators = [
   body('code').isString().notEmpty(),
   body('name').optional().isString().notEmpty(),
-  body('obtained_at').isISO8601()
+  body('obtained_at').isISO8601() // mantener string ISO; casteamos en SQL
 ];
 
 async function addMyCert(req, res) {
@@ -106,42 +106,46 @@ async function addMyCert(req, res) {
   try {
     await client.query('BEGIN');
 
-    // 1) Upsert de la certificación
+    // 1) Upsert certificación
     const upsertCert = `
       INSERT INTO certifications (code, name)
-      VALUES ($1, COALESCE($2, $1))
+      VALUES ($1::text, COALESCE($2::text, $1::text))
       ON CONFLICT (code) DO UPDATE
         SET name = COALESCE(EXCLUDED.name, certifications.name)
       RETURNING id, code, name
     `;
     const { rows: certRows } = await client.query(upsertCert, [code, name || null]);
-    const certId = certRows[0].id;
-    const certName = certRows[0].name; // siempre queda al menos = code
+    const certId = certRows[0].id;       // ajusta casteo abajo según tipo
+    const certName = certRows[0].name;
 
-    // 2) Vincular al usuario (upsert por (user_id, certification_id))
+    // 2) Vincular al usuario (upsert)
     const link = `
       INSERT INTO user_certifications (user_id, certification_id, obtained_at)
-      VALUES ($1,$2,$3)
+      VALUES ($1::uuid, $2::int, $3::date)  -- cambia ::int por ::uuid si aplica
       ON CONFLICT (user_id, certification_id) DO UPDATE
         SET obtained_at = EXCLUDED.obtained_at
       RETURNING user_id, certification_id, obtained_at
     `;
-    const { rows: linkRows } = await client.query(link, [req.user.id, certId, obtained_at]);
+    await client.query(link, [req.user.id, certId, obtained_at || null]);
 
-    // 3) LOG de actividad (training_completed)  ✅
-    //    - event_time = obtained_at (fecha de obtención)
-    //    - meta: code + name para trazabilidad
+    // 3) LOG de actividad: castea TODOS los parámetros
     await client.query(
       `INSERT INTO user_activity_log
          (user_id, activity_type, event_time, certification_id, hours, credits, meta)
        VALUES
-         ($1, 'training_completed', $2, $3, 0, 0,
-          jsonb_build_object('code', $4, 'name', $5))`,
-      [req.user.id, new Date(obtained_at), certId, code, certName]
+         ($1::uuid, 'training_completed', $2::timestamptz, $3::int, 0, 0,
+          jsonb_build_object('code', $4::text, 'name', $5::text))`,
+      [
+        req.user.id,
+        obtained_at,     // string ISO; el ::timestamptz lo define en SQL
+        certId,          // cambia a ::uuid si tu PK lo es
+        code,
+        certName
+      ]
     );
 
     await client.query('COMMIT');
-    return res.status(201).json(linkRows[0]);
+    return res.status(201).json({ user_id: req.user.id, certification_id: certId, obtained_at });
   } catch (e) {
     await client.query('ROLLBACK');
     console.error(e);
