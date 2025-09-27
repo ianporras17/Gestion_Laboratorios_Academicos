@@ -340,6 +340,7 @@ GET {{base_url}}/reports/usage
 GET {{base_url}}/reports/inventory
 GET {{base_url}}/reports/maintenance
 GET {{base_url}}/reports/export?kind=usage&format=pdf
+GET {{base_url}}/reports/export?kind=usage&format=pdf&from=2025-01-01&to=2025-12-31 
 GET {{base_url}}/reports/export?kind=inventory&format=xlsx
 ```
 
@@ -378,7 +379,16 @@ return res.json({ ok: true, request_id: requestId, type, notification_id: rows[0
 
 ---
 
-## 10) Troubleshooting rápido
+## 10) Dependencias requeridas en producción
+- `exceljs`  
+- `pdfkit`  
+
+Asegúrate de moverlas a `dependencies` en `package.json`.
+
+
+---
+
+## 11) Troubleshooting rápido
 
 - **URL con doble “//”** (p.ej. `/approved//validate`) → faltó `{{request_id}}`. Corre “Listar aprobadas” antes.
 - **`401`** → falta/expiró token: re‑login.
@@ -389,7 +399,7 @@ return res.json({ ok: true, request_id: requestId, type, notification_id: rows[0
 
 ---
 
-## 11) Reset de BD (solo desarrollo)
+## 12) Reset de BD (solo desarrollo)
 ```sql
 DROP SCHEMA public CASCADE;
 CREATE SCHEMA public;
@@ -398,7 +408,7 @@ Luego corre migraciones otra vez.
 
 ---
 
-## 12) Checklist final (debe cumplirse todo)
+## 13) Checklist final (debe cumplirse todo)
 
 - [ ] Roles ↔ dominios correctos en registro/login.
 - [ ] 2.1: Entrega cambia estados/stock y genera `OUT`; Devolución genera `IN`.

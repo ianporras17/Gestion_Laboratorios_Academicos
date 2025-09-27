@@ -4,32 +4,34 @@ const pool = require('../db/pool');
 
 /** Rango opcional YYYY-MM-DD */
 function parseRange(qs) {
-  const from = qs.from ? new Date(qs.from + 'T00:00:00') : null;
-  const to   = qs.to   ? new Date(qs.to   + 'T23:59:59') : null;
+  const now = new Date();
+  const from = qs.from ? new Date(qs.from + 'T00:00:00') : new Date('1900-01-01T00:00:00');
+  const to   = qs.to   ? new Date(qs.to   + 'T23:59:59') : now;
   return { from, to };
 }
 
 /** --------- Data helpers --------- */
 async function getUsageData({ from, to }) {
   const sql = `
-    SELECT
-      di.resource_id,
-      COALESCE(r.name, r.code::text)      AS resource_name,
-      rq.user_id,
-      u.email                              AS user_email,
-      COUNT(*)                             AS times_used,
-      MIN(d.delivered_at)                  AS first_use,
-      MAX(d.delivered_at)                  AS last_use
-    FROM deliveries d
-    JOIN delivery_items di ON di.delivery_id = d.id
-    JOIN requests rq       ON rq.id = d.request_id
-    LEFT JOIN users u      ON u.id = rq.user_id
-    LEFT JOIN resources r  ON r.id = di.resource_id
-    WHERE d.delivered_at >= $1
-      AND d.delivered_at <  $2
-      AND di.resource_id IS NOT NULL
-    GROUP BY di.resource_id, r.name, r.code, rq.user_id, u.email
-    ORDER BY times_used DESC, last_use DESC;
+      SELECT
+    di.resource_id,
+    r.name AS resource_name,
+    r.code AS resource_code,
+    rq.user_id,
+    u.email AS user_email,
+    COUNT(*)                             AS times_used,
+    MIN(COALESCE(d.delivered_at, d.created_at)) AS first_use,
+    MAX(COALESCE(d.delivered_at, d.created_at)) AS last_use
+  FROM deliveries d
+  JOIN delivery_items di ON di.delivery_id = d.id
+  JOIN requests rq       ON rq.id = d.request_id
+  LEFT JOIN users u      ON u.id = rq.user_id
+  LEFT JOIN resources r  ON r.id = di.resource_id
+  WHERE COALESCE(d.delivered_at, d.created_at) >= $1
+    AND COALESCE(d.delivered_at, d.created_at) <  $2
+    AND di.resource_id IS NOT NULL
+  GROUP BY di.resource_id, r.name, r.code, rq.user_id, u.email
+  ORDER BY times_used DESC, last_use DESC;
   `;
   const params = [from, to];
   const { rows } = await pool.query(sql, params);
