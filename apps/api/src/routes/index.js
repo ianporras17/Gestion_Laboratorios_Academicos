@@ -1,12 +1,6 @@
-const { Router } = require("express");
+const { Router } = require('express');
 const router = Router();
 
-<<<<<<< Updated upstream
-// ejemplo de endpoint
-router.get("/hello", (req, res) => {
-  res.json({ message: "hello from API" });
-});
-=======
 // Este /health se verá como /api/health por el prefijo del server
 router.get('/health', (_req, res) => res.json({ ok: true }));
 
@@ -23,6 +17,5 @@ router.use('/notifications', require('./notifications'));
 router.use('/history', require('./history'));
 router.use('/loans', require('./loans'));  
 router.use('/messages', require('./messages'));
->>>>>>> Stashed changes
 
 module.exports = router;
