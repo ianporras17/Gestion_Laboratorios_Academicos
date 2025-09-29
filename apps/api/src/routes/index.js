@@ -1,19 +1,27 @@
-const { Router } = require("express");
-const router = Router();
+const express = require('express');
 
-// Importar rutas
-const labsRoutes = require('./labs');
-const availabilityRoutes = require('./availability');
+const departments = require('./departments.routes');
+const labs = require('./labs.routes');
+const resourceTypes = require('./resource_types.routes');
+const resources = require('./resources.routes');
+const availability = require('./availability.routes'); 
+const requests      = require('./requests.routes'); 
+const control = require('./control.routes');
 
-// ejemplo de endpoint
-router.get("/hello", (req, res) => {
-  res.json({ message: "hello from API" });
+const router = express.Router();
+
+// ✅ Respuesta al GET /api (para que el app no vea 404)
+router.get('/', (_req, res) => {
+  res.json({ ok: true, name: 'LabTEC API', version: 1 });
 });
 
-// Rutas de laboratorios
-router.use('/labs', labsRoutes);
-
-// Rutas de disponibilidad
-router.use('/availability', availabilityRoutes);
+// Dominios principales
+router.use('/departments', departments);
+router.use('/labs', labs);
+router.use('/resource-types', resourceTypes);
+router.use('/resources', resources);
+router.use('/', availability);
+router.use('/requests',      requests); 
+router.use('/', control);
 
 module.exports = router;

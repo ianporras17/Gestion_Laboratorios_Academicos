@@ -1,24 +1,19 @@
-const express = require("express");
-const cors = require("cors");
-const helmet = require("helmet");
-const morgan = require("morgan");
-const router = require("./routes");
+// apps/api/src/app.js
+const express = require('express');
+const cors = require('cors');
+
+const routes = require('./routes');
+const { notFound, errorHandler } = require('./middlewares/error');
 
 const app = express();
 
-app.use(helmet());
-app.use(cors({
-  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : "*"
-}));
-app.use(express.json());
-app.use(morgan("dev"));
+const allowed = (process.env.CORS_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean);
+app.use(cors({ origin: allowed.length ? allowed : '*' }));
+app.use(express.json({ limit: '1mb' }));
 
-app.get("/health", (req, res) => res.json({ ok: true }));
+app.use('/api', routes);
 
-app.use("/api", router);
-
-// manejador de errores (último)
-const { errorHandler } = require("./middlewares/error");
+app.use(notFound);
 app.use(errorHandler);
 
 module.exports = app;

@@ -1,8 +1,14 @@
+// apps/api/src/middlewares/error.js
+function notFound(req, res, next) {
+  res.status(404).json({ error: 'Not found' });
+}
+
 function errorHandler(err, req, res, next) {
-  console.error(err);
-  res.status(err.status || 500).json({
-    error: true,
-    message: err.message || "Internal Server Error"
+  console.error('[ERROR]', err);
+  const status = err.status || 500;
+  res.status(status).json({
+    error: err.message || 'Internal Server Error'
   });
 }
-module.exports = { errorHandler };
+
+module.exports = { notFound, errorHandler };
