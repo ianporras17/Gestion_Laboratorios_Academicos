@@ -157,6 +157,13 @@ export default function ReportsScreen() {
             </Pressable>
           </Link>
 
+          {/* NUEVO: acceso rápido a reportes institucionales (ADMIN) */}
+          <Link href="/admin/reports" asChild>
+            <Pressable style={[s.btn, { backgroundColor: '#0ea5e9' }]}>
+              <Text style={s.btnTxt}>Ir a “Reportes Institucionales (ADMIN)”</Text>
+            </Pressable>
+          </Link>
+
           {/* tabs */}
           <View style={s.tabs}>
             <Pressable onPress={() => setTab('usage')} style={[s.tab, tab === 'usage' && s.tabActive]}>

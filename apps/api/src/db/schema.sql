@@ -375,3 +375,35 @@ CREATE INDEX IF NOT EXISTS idx_requests_user ON requests(user_id);
 -- =======================
 CREATE INDEX IF NOT EXISTS idx_resources_lab_type ON resources(lab_id, type_id, status);
 CREATE INDEX IF NOT EXISTS idx_labs_location ON labs(location);
+
+-- =======================
+-- MOD 4: ADMIN (4.2 + 4.1 permisos)
+-- =======================
+
+-- Parámetros globales (clave-valor JSON)
+CREATE TABLE IF NOT EXISTS system_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL,
+  updated_by INT,
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Permisos por rol (roles ya existen en users.role)
+-- permission: string libre, p.ej. 'users.manage','settings.manage','audit.view'
+CREATE TABLE IF NOT EXISTS role_permissions (
+  role TEXT NOT NULL CHECK (role IN ('ESTUDIANTE','DOCENTE','TECNICO','ADMIN')),
+  permission TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (role, permission)
+);
+
+CREATE INDEX IF NOT EXISTS idx_role_perms_role ON role_permissions (role);
+
+-- Sugerencia inicial de permisos (idempotente):
+INSERT INTO role_permissions (role, permission)
+SELECT 'ADMIN', p FROM (VALUES
+  ('users.read'),('users.manage'),('users.roles'),
+  ('settings.read'),('settings.manage'),
+  ('audit.read'),('audit.export')
+) as t(p)
+ON CONFLICT DO NOTHING;

@@ -14,7 +14,7 @@ export default function RootLayout() {
   if (!loaded) return null;
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}> 
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
@@ -37,6 +37,12 @@ export default function RootLayout() {
         {/* Admin */}
         <Stack.Screen name="admin/departments" options={{ title: 'Departamentos' }} />
         <Stack.Screen name="admin/resource-types" options={{ title: 'Tipos de Recurso' }} />
+        {/* NUEVO 4.1–4.3 */}
+        <Stack.Screen name="admin/users" options={{ title: 'Usuarios' }} />
+        <Stack.Screen name="admin/settings" options={{ title: 'Parámetros Globales' }} />
+        <Stack.Screen name="admin/audit" options={{ title: 'Auditoría' }} />
+        {/* NUEVO 4.4 */}
+        <Stack.Screen name="admin/reports" options={{ title: 'Reportes Institucionales' }} />
 
         {/* Técnico */}
         <Stack.Screen name="tech/index" options={{ title: 'Panel Técnico' }} />
@@ -63,7 +69,7 @@ export default function RootLayout() {
         <Stack.Screen name="users/trainings" options={{ title: 'Mis capacitaciones' }} />
         <Stack.Screen name="users/availability" options={{ title: 'Disponibilidad' }} />
 
-        {/* NUEVO: 3.4 y 3.5 */}
+        {/* 3.4 y 3.5 */}
         <Stack.Screen name="users/history" options={{ title: 'Mi historial' }} />
         <Stack.Screen name="users/notifications" options={{ title: 'Notificaciones' }} />
 

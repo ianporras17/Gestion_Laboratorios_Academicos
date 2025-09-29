@@ -7,7 +7,7 @@ const BASE = (process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/$/, "");
 
 export default function Home() {
   const router = useRouter();
-  const go = (p: string) => router.push(p as any); // usamos go() para rutas que aún no están en el union de tipos
+  const go = (p: string) => router.push(p as any); // rutas fuera del union tipado
 
   const [msg, setMsg] = useState<string>("(sin datos)");
   const [status, setStatus] = useState<"idle"|"loading"|"ok"|"err">("idle");
@@ -116,6 +116,17 @@ export default function Home() {
           <Text style={s.btnText}>TIPOS DE RECURSO</Text>
         </Pressable>
       </Link>
+
+      {/* Enlaces rápidos para 4.1–4.3 */}
+      <Pressable style={[s.btn, { backgroundColor: "#0ea5e9" }]} onPress={() => go("/admin/users")}>
+        <Text style={s.btnText}>GESTIÓN DE USUARIOS</Text>
+      </Pressable>
+      <Pressable style={[s.btn, { backgroundColor: "#0284c7" }]} onPress={() => go("/admin/settings")}>
+        <Text style={s.btnText}>PARÁMETROS GLOBALES</Text>
+      </Pressable>
+      <Pressable style={[s.btn, { backgroundColor: "#0369a1" }]} onPress={() => go("/admin/audit")}>
+        <Text style={s.btnText}>AUDITORÍA</Text>
+      </Pressable>
 
       {/* ---------- Reporte 1.4 existente ---------- */}
       <Text style={s.section}>Reportes (Mód 1.4)</Text>
