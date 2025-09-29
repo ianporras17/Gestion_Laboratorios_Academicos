@@ -38,6 +38,23 @@ export default function RootLayout() {
         <Stack.Screen name="admin/departments" options={{ title: 'Departamentos' }} />
         <Stack.Screen name="admin/resource-types" options={{ title: 'Tipos de Recurso' }} />
 
+        <Stack.Screen name="tech/index" options={{ title: 'Panel Técnico' }} />
+        <Stack.Screen name="tech/approved" options={{ title: 'Solicitudes Aprobadas' }} />
+        <Stack.Screen name="tech/assignments" options={{ title: 'Asignaciones' }} />
+
+        {/* Inventario */}
+        <Stack.Screen name="inventory/consumables" options={{ title: 'Consumibles' }} />
+        <Stack.Screen name="inventory/movements" options={{ title: 'Movimientos de Inventario' }} />
+        <Stack.Screen name="inventory/fixed-status" options={{ title: 'Estado de Equipo Fijo' }} />
+
+        {/* Mantenimiento */}
+        <Stack.Screen name="maintenance/orders/index" options={{ title: 'Órdenes de Mantenimiento' }} />
+        <Stack.Screen name="maintenance/orders/new" options={{ title: 'Nueva Orden' }} />
+        <Stack.Screen name="maintenance/orders/[id]" options={{ title: 'Detalle Orden' }} />
+
+        {/* Reportes */}
+        <Stack.Screen name="reports/index" options={{ title: 'Reportes Operativos' }} />
+
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />

@@ -261,3 +261,61 @@ CREATE TABLE IF NOT EXISTS academic_benefits (
 CREATE INDEX IF NOT EXISTS idx_assignments_lab ON resource_assignments (lab_id, assigned_at);
 CREATE INDEX IF NOT EXISTS idx_consumptions_lab ON material_consumptions (lab_id, used_at);
 CREATE INDEX IF NOT EXISTS idx_benefits_lab ON academic_benefits (lab_id, created_at);
+
+
+-- =======================
+-- 2.2 Gestión de Inventario
+-- =======================
+
+-- Movimientos de inventario (equipos fijos y/o consumibles)
+-- Para equipos fijos, registramos cambios de estado/ubicación como "notas".
+-- Para consumibles, impactamos qty_available con type IN/OUT.
+CREATE TABLE IF NOT EXISTS inventory_movements (
+  id SERIAL PRIMARY KEY,
+  lab_id INT NOT NULL REFERENCES labs(id) ON DELETE CASCADE,
+  user_id INT,
+  -- referenciamos o bien el recurso fijo o bien el consumible:
+  fixed_id INT REFERENCES resources_fixed(id) ON DELETE SET NULL,
+  consumable_id INT REFERENCES consumables(id) ON DELETE SET NULL,
+  type TEXT NOT NULL CHECK (type IN ('IN','OUT','ADJUST','INFO')), -- IN/OUT para stock; ADJUST correcciones; INFO cambios informativos (estado/ubicación)
+  qty NUMERIC,                                -- requerido para consumibles cuando type IN/OUT/ADJUST
+  reason TEXT,                                -- motivo del movimiento ('compra','uso','corrección','traslado', etc.)
+  notes TEXT,                                 -- detalle adicional (ubicación nueva, observaciones)
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  CHECK ((fixed_id IS NOT NULL) OR (consumable_id IS NOT NULL))
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_mov_lab ON inventory_movements (lab_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_inv_mov_fixed ON inventory_movements (fixed_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_inv_mov_cons ON inventory_movements (consumable_id, created_at DESC);
+
+
+-- =======================
+-- 2.3 Gestión de Mantenimientos
+-- =======================
+
+CREATE TABLE IF NOT EXISTS maintenance_orders (
+  id SERIAL PRIMARY KEY,
+  lab_id INT NOT NULL REFERENCES labs(id) ON DELETE CASCADE,
+  resource_id INT REFERENCES resources(id) ON DELETE SET NULL,
+  fixed_id INT REFERENCES resources_fixed(id) ON DELETE SET NULL,
+  type TEXT NOT NULL CHECK (type IN ('PREVENTIVO','CORRECTIVO')),
+  status TEXT NOT NULL DEFAULT 'PROGRAMADO'
+    CHECK (status IN ('PROGRAMADO','EN_PROCESO','COMPLETADO','CANCELADO')),
+  scheduled_at TIMESTAMP,             -- fecha programada
+  started_at TIMESTAMP,
+  completed_at TIMESTAMP,
+  canceled_at TIMESTAMP,
+  technician_name TEXT,
+  technician_id INT,
+  description TEXT,                   -- descripción/reporte
+  used_parts JSONB,                   -- repuestos/insumos usados (opcional)
+  result_status TEXT,                 -- nuevo estado del equipo tras completar (ej. 'DISPONIBLE','INACTIVO')
+  notify_on_disponible BOOLEAN NOT NULL DEFAULT TRUE, -- avisar si vuelve a DISPONIBLE
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  CHECK ((resource_id IS NOT NULL) OR (fixed_id IS NOT NULL))
+);
+
+CREATE INDEX IF NOT EXISTS idx_mo_lab_status ON maintenance_orders (lab_id, status);
+CREATE INDEX IF NOT EXISTS idx_mo_sched ON maintenance_orders (scheduled_at);

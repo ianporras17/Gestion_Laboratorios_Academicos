@@ -7,7 +7,7 @@ type Report = { assignments: Row[]; consumptions: Row[] };
 
 export default function UsageReport() {
   const [labId, setLabId] = useState('');
-  const [from, setFrom] = useState('2025-10-01T00:00:00Z');
+  const [from, setFrom] = useState('2025-10-01T00:00:00Z'); 
   const [to, setTo] = useState('2025-10-31T23:59:59Z');
   const [data, setData] = useState<Report | null>(null);
 
