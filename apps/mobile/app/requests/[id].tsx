@@ -9,14 +9,22 @@ export default function RequestDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const reqId = Number(id);
 
-  const [data, setData] = useState<RequestDetail | null>(null);
+  const [data, setData] = useState<RequestDetail | any | null>(null);
   const [reviewer_note, setNote] = useState('');
   const [message, setMessage] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const r = await RequestsApi.get(reqId);
+      const r: any = await RequestsApi.get(reqId);
+      // fallback: si la API no trae messages embebidos, los pedimos aparte
+      if (!r?.messages) {
+        try {
+          const mm = await RequestsApi.messages(reqId);
+          r.messages = mm;
+        } catch {}
+      }
       setData(r);
     } catch (e:any) {
       Alert.alert('Error', e.message ?? 'No se pudo cargar');
@@ -29,46 +37,82 @@ export default function RequestDetailScreen() {
 
   const approve = async () => {
     try {
+      setBusy(true);
       await RequestsApi.approve(reqId, { reviewer_id: 1, reviewer_note });
       setNote('');
       Alert.alert('OK', 'Aprobada');
       load();
     } catch (e:any) {
       Alert.alert('Error', e.message ?? 'No se pudo aprobar');
+    } finally {
+      setBusy(false);
     }
   };
+
   const reject = async () => {
     try {
+      setBusy(true);
       await RequestsApi.reject(reqId, { reviewer_id: 1, reviewer_note });
       setNote('');
       Alert.alert('OK', 'Rechazada');
       load();
     } catch (e:any) {
       Alert.alert('Error', e.message ?? 'No se pudo rechazar');
+    } finally {
+      setBusy(false);
     }
   };
+
   const needInfo = async () => {
     try {
+      setBusy(true);
       await RequestsApi.needInfo(reqId, { reviewer_id: 1, reviewer_note, message });
       setNote(''); setMessage('');
       Alert.alert('OK', 'Se solicitó información');
       load();
     } catch (e:any) {
       Alert.alert('Error', e.message ?? 'No se pudo actualizar');
-    }
-  };
-  const addMsg = async () => {
-    if (!message) return;
-    try {
-      const m: RequestMessage = await RequestsApi.addMessage(reqId, { sender: 'USUARIO', message });
-      setData(prev => prev ? ({ ...prev, messages: [...prev.messages, m] }) : prev);
-      setMessage('');
-    } catch (e:any) {
-      Alert.alert('Error', e.message ?? 'No se pudo enviar el mensaje');
+    } finally {
+      setBusy(false);
     }
   };
 
-  const messages = useMemo(() => data?.messages ?? [], [data]);
+  const addMsg = async () => {
+    if (!message) return;
+    try {
+      setBusy(true);
+      const m: RequestMessage = await RequestsApi.addMessage(reqId, { sender: 'USUARIO', message });
+      setData((prev:any) => prev ? ({ ...prev, messages: [...(prev.messages || []), m] }) : prev);
+      setMessage('');
+    } catch (e:any) {
+      Alert.alert('Error', e.message ?? 'No se pudo enviar el mensaje');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const canCancel = useMemo(() => {
+    if (!data) return false;
+    const start = new Date(data.requested_from);
+    const now = new Date();
+    return data.status === 'PENDIENTE' && start.getTime() > now.getTime();
+  }, [data]);
+
+  const doCancel = async () => {
+    try {
+      setBusy(true);
+      await RequestsApi.cancel(reqId);
+      Alert.alert('OK', 'Solicitud cancelada');
+      load();
+    } catch (e:any) {
+      Alert.alert('Error', e?.response?.data?.error || e.message || 'No se pudo cancelar');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // 👇 ya no usamos useMemo aquí (evita hook condicional)
+  const messages = data?.messages ?? [];
 
   if (!data) {
     return (
@@ -78,7 +122,7 @@ export default function RequestDetailScreen() {
     );
   }
 
-  // Header con metadatos y acciones (no-scroll, se renderiza como header de la lista)
+  // Header con metadatos y acciones
   const Header = (
     <View>
       <View style={s.card}>
@@ -101,8 +145,10 @@ export default function RequestDetailScreen() {
         {(data.items ?? []).length === 0 ? (
           <Text>(sin ítems)</Text>
         ) : (
-          (data.items ?? []).map(it => (
-            <Text key={it.id}>• {it.resource_id ? `Recurso #${it.resource_id}` : 'Espacio del LAB'}  (qty {it.qty})</Text>
+          (data.items ?? []).map((it:any) => (
+            <Text key={it.id ?? `${it.resource_id}-${it.qty}`}>
+              • {it.resource_id ? `Recurso #${it.resource_id}` : 'Espacio del LAB'}  (qty {it.qty})
+            </Text>
           ))
         )}
       </View>
@@ -115,9 +161,9 @@ export default function RequestDetailScreen() {
           value={reviewer_note}
           onChangeText={setNote}
         />
-        <Button title="Aprobar" onPress={approve} />
+        <Button title={busy ? '...' : 'Aprobar'} onPress={approve} />
         <View style={{height:6}} />
-        <Button title="Rechazar" onPress={reject} />
+        <Button title={busy ? '...' : 'Rechazar'} onPress={reject} />
         <View style={{height:6}} />
         <TextInput
           style={s.input}
@@ -125,7 +171,13 @@ export default function RequestDetailScreen() {
           value={message}
           onChangeText={setMessage}
         />
-        <Button title="Solicitar información" onPress={needInfo} />
+        <Button title={busy ? '...' : 'Solicitar información'} onPress={needInfo} />
+        {canCancel && (
+          <>
+            <View style={{height:6}} />
+            <Button title={busy ? '...' : 'Cancelar solicitud (usuario)'} onPress={doCancel} />
+          </>
+        )}
       </View>
 
       <View style={{height:8}} />
@@ -151,14 +203,14 @@ export default function RequestDetailScreen() {
         value={message}
         onChangeText={setMessage}
       />
-      <Button title="Enviar mensaje" onPress={addMsg}/>
+      <Button title={busy ? '...' : 'Enviar mensaje'} onPress={addMsg}/>
     </View>
   );
 
   return (
     <FlatList
       data={messages}
-      keyExtractor={(m) => String(m.id)}
+      keyExtractor={(m:any) => String(m.id)}
       renderItem={({ item }) => (
         <View style={[s.card, { paddingVertical: 8 }]}>
           <Text style={{fontWeight:'700'}}>{item.sender}</Text>

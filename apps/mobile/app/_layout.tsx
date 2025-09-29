@@ -14,7 +14,7 @@ export default function RootLayout() {
   if (!loaded) return null;
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}> 
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
@@ -38,6 +38,7 @@ export default function RootLayout() {
         <Stack.Screen name="admin/departments" options={{ title: 'Departamentos' }} />
         <Stack.Screen name="admin/resource-types" options={{ title: 'Tipos de Recurso' }} />
 
+        {/* Técnico */}
         <Stack.Screen name="tech/index" options={{ title: 'Panel Técnico' }} />
         <Stack.Screen name="tech/approved" options={{ title: 'Solicitudes Aprobadas' }} />
         <Stack.Screen name="tech/assignments" options={{ title: 'Asignaciones' }} />
@@ -54,6 +55,22 @@ export default function RootLayout() {
 
         {/* Reportes */}
         <Stack.Screen name="reports/index" options={{ title: 'Reportes Operativos' }} />
+
+        {/* Auth / Users */}
+        <Stack.Screen name="auth/login" options={{ title: 'Iniciar sesión' }} />
+        <Stack.Screen name="auth/register" options={{ title: 'Crear cuenta' }} />
+        <Stack.Screen name="users/profile" options={{ title: 'Mi perfil' }} />
+        <Stack.Screen name="users/trainings" options={{ title: 'Mis capacitaciones' }} />
+        <Stack.Screen name="users/availability" options={{ title: 'Disponibilidad' }} />
+
+        {/* NUEVO: 3.4 y 3.5 */}
+        <Stack.Screen name="users/history" options={{ title: 'Mi historial' }} />
+        <Stack.Screen name="users/notifications" options={{ title: 'Notificaciones' }} />
+
+        {/* Browse */}
+        <Stack.Screen name="browse/labs" options={{ title: 'Buscar Laboratorios' }} />
+        <Stack.Screen name="browse/resources" options={{ title: 'Buscar Recursos' }} />
+        <Stack.Screen name="browse/calendar" options={{ title: 'Calendario' }} />
 
         <Stack.Screen name="+not-found" />
       </Stack>

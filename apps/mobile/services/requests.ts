@@ -4,6 +4,22 @@ import type { RequestCreatePayload, RequestDetail, RequestRow, RequestMessage } 
 const BASE = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/$/, '');
 const API = `${BASE}/requests`;
 
+
+export type RequestPreviewPayload = {
+  lab_id: number;
+  from: string; // ISO
+  to: string;   // ISO
+  user_id?: number;
+  items: Array<{ resource_id?: number; qty?: number }>;
+};
+
+export type RequestPreviewResult = {
+  availability_ok: boolean;
+  availability_conflicts: any[];
+  requirements_ok: boolean;
+  missing_requirements: any[];
+};
+
 export const RequestsApi = {
   async create(payload: RequestCreatePayload): Promise<RequestDetail> {
     const { data } = await axios.post(API, payload);
@@ -35,4 +51,21 @@ export const RequestsApi = {
     const { data } = await axios.post(`${API}/${id}/messages`, body);
     return data;
   },
+
+  async preview(payload: RequestPreviewPayload): Promise<RequestPreviewResult> {
+    const { data } = await axios.post(`${API}/preview`, payload);
+    return data;
+  },
+
+  async cancel(id: number) {
+    const { data } = await axios.put(`${API}/${id}/cancel`);
+    return data;
+  },
+
+  async messages(id: number): Promise<RequestMessage[]> {
+    const { data } = await axios.get(`${API}/${id}/messages`);
+    return data;
+  },
+  
 };
+

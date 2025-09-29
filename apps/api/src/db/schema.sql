@@ -319,3 +319,59 @@ CREATE TABLE IF NOT EXISTS maintenance_orders (
 
 CREATE INDEX IF NOT EXISTS idx_mo_lab_status ON maintenance_orders (lab_id, status);
 CREATE INDEX IF NOT EXISTS idx_mo_sched ON maintenance_orders (scheduled_at);
+
+
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  role TEXT NOT NULL CHECK (role IN ('ESTUDIANTE','DOCENTE','TECNICO','ADMIN')),
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  full_name TEXT NOT NULL,
+  student_id TEXT,          -- carné (si aplica)
+  teacher_code TEXT,        -- código (si aplica)
+  program_department TEXT,  -- carrera o departamento
+  phone TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Catálogo de capacitaciones/certificaciones
+CREATE TABLE IF NOT EXISTS trainings_catalog (
+  id SERIAL PRIMARY KEY,
+  code TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  description TEXT,
+  expires_months INT
+);
+
+-- Requisitos de capacitación por laboratorio
+CREATE TABLE IF NOT EXISTS lab_training_requirements (
+  id SERIAL PRIMARY KEY,
+  lab_id INT NOT NULL REFERENCES labs(id) ON DELETE CASCADE,
+  training_id INT NOT NULL REFERENCES trainings_catalog(id) ON DELETE RESTRICT,
+  UNIQUE(lab_id, training_id)
+);
+
+-- Capacitaciones completadas por usuario
+CREATE TABLE IF NOT EXISTS user_trainings (
+  id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  training_id INT NOT NULL REFERENCES trainings_catalog(id) ON DELETE RESTRICT,
+  completed_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMP,
+  UNIQUE(user_id, training_id)
+);
+
+-- Vincular solicitudes con usuario cuando aplique (denormalizado ya existía requester_*)
+-- Vincular solicitudes con usuario cuando aplique (sin DO $$)
+ALTER TABLE IF EXISTS requests
+  ADD COLUMN IF NOT EXISTS user_id INT REFERENCES users(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_requests_user ON requests(user_id);
+
+-- =======================
+-- MÓDULO 3.2 Búsqueda/Disponibilidad (índices sugeridos)
+-- =======================
+CREATE INDEX IF NOT EXISTS idx_resources_lab_type ON resources(lab_id, type_id, status);
+CREATE INDEX IF NOT EXISTS idx_labs_location ON labs(location);

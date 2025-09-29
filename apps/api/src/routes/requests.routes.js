@@ -1,21 +1,28 @@
 // apps/api/src/routes/requests.routes.js
 const express = require('express');
-const RequestsController = require('../controllers/requests.controller');
+const ctrl = require('../controllers/requests.controller');
+// const { requireAuth } = require('../middlewares/auth.middleware');
 
 const router = express.Router();
 const w = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-// Crear y listar
-router.post('/', w((req, res, next) => RequestsController.create(req, res, next)));
-router.get('/',  w((req, res, next) => RequestsController.list(req, res, next)));
-router.get('/:id', w((req, res, next) => RequestsController.get(req, res, next)));
+// ---------- Preview/Creación/Listado/Detalle ----------
+router.post('/preview', /*requireAuth,*/ w(ctrl.preview));
+router.post('/',        /*requireAuth,*/ w(ctrl.create));
+router.get('/',         /*requireAuth,*/ w(ctrl.list));
+router.get('/:id',      /*requireAuth,*/ w(ctrl.get));
 
-// Acciones
-router.post('/:id/approve',   w((req, res, next) => RequestsController.approve(req, res, next)));
-router.post('/:id/reject',    w((req, res, next) => RequestsController.reject(req, res, next)));
-router.post('/:id/need-info', w((req, res, next) => RequestsController.needInfo(req, res, next)));
+// ---------- Transiciones de estado ----------
+router.put('/:id/status', /*requireAuth,*/ w(ctrl.setStatus));
+router.put('/:id/cancel', /*requireAuth,*/ w(ctrl.cancel));
 
-// Mensajes (para “Solicitar información adicional” ida y vuelta)
-router.post('/:id/messages',  w((req, res, next) => RequestsController.addMessage(req, res, next)));
+// Compatibilidad con tus endpoints previos:
+router.post('/:id/approve',   /*requireAuth,*/ w(ctrl.approve));
+router.post('/:id/reject',    /*requireAuth,*/ w(ctrl.reject));
+router.post('/:id/need-info', /*requireAuth,*/ w(ctrl.needInfo));
+
+// ---------- Mensajería por solicitud ----------
+router.get('/:id/messages',  /*requireAuth,*/ w(ctrl.listMessages));
+router.post('/:id/messages', /*requireAuth,*/ w(ctrl.addMessage));
 
 module.exports = router;
