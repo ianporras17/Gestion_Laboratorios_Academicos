@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Button, FlatList, Alert, StyleSheet } from 'react-native';
 import { MaintenanceApi } from '@/services/maintenance';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+const pickError = (e:any) =>
+  e?.response?.data?.error || e?.response?.data?.message || e?.message || 'No se pudo cargar la lista';
 
 export default function OrdersListScreen() {
   const router = useRouter();
@@ -18,85 +22,129 @@ export default function OrdersListScreen() {
       });
       setRows(data);
     } catch (e:any) {
-      Alert.alert('Error', e.message ?? 'No se pudo cargar');
+      Alert.alert('Atención', pickError(e));
     }
   };
 
   const start = async (id:number) => {
-    try { await MaintenanceApi.start(id, {}); Alert.alert('OK','Iniciada'); load(); } catch (e:any){ Alert.alert('Error', e.message); }
+    try { await MaintenanceApi.start(id, {}); Alert.alert('OK','Orden iniciada'); load(); }
+    catch (e:any){ Alert.alert('Atención', pickError(e)); }
   };
   const cancel = async (id:number) => {
-    try { await MaintenanceApi.cancel(id, {}); Alert.alert('OK','Cancelada'); load(); } catch (e:any){ Alert.alert('Error', e.message); }
+    try { await MaintenanceApi.cancel(id, {}); Alert.alert('OK','Orden cancelada'); load(); }
+    catch (e:any){ Alert.alert('Atención', pickError(e)); }
   };
   const complete = async (id:number) => {
     const f = completeForm[id] || {};
-    try { 
+    try {
       await MaintenanceApi.complete(id, {
         result_status: f.result_status as any,
         used_parts: f.used_parts,
         notes: f.notes
       });
-      Alert.alert('OK','Completada');
+      Alert.alert('OK','Orden completada');
       setCompleteForm(prev => ({ ...prev, [id]: {} }));
       load();
-    } catch (e:any){ Alert.alert('Error', e.message); }
+    } catch (e:any){ Alert.alert('Atención', pickError(e)); }
   };
 
   const edit = (id:number, k:keyof (typeof completeForm)[number], v:string) =>
     setCompleteForm(prev => ({ ...prev, [id]: { ...(prev[id]||{}), [k]: v } }));
 
   return (
-    <FlatList
-      data={rows}
-      keyExtractor={(x)=>String(x.id)}
-      ListHeaderComponent={
-        <View style={{ padding:12 }}>
-          <Text style={s.h1}>Órdenes de mantenimiento</Text>
-          <View style={s.row}>
-            <TextInput style={s.input} placeholder="lab_id" keyboardType="numeric" value={labId} onChangeText={setLabId}/>
-            <TextInput style={s.input} placeholder="status (PENDIENTE/EN_PROCESO/...)" value={status} onChangeText={setStatus}/>
+    <SafeAreaView style={s.screen}>
+      <FlatList
+        data={rows}
+        keyExtractor={(x)=>String(x.id)}
+        ListHeaderComponent={
+          <View style={{ padding:12 }}>
+            <Text style={s.h1}>Órdenes de mantenimiento</Text>
+            <View style={s.row}>
+              <TextInput
+                style={s.input}
+                placeholder="ID de laboratorio (lab_id)"
+                placeholderTextColor="#94a3b8"
+                keyboardType="numeric"
+                value={labId}
+                onChangeText={setLabId}
+              />
+              <TextInput
+                style={s.input}
+                placeholder="Estado (PENDIENTE / EN_PROCESO / ...)"
+                placeholderTextColor="#94a3b8"
+                value={status}
+                onChangeText={setStatus}
+              />
+            </View>
+            <View style={{ marginTop:8 }}>
+              <Button title="Buscar" onPress={load} />
+            </View>
           </View>
-          <View style={{ marginTop:8 }}>
-            <Button title="Buscar" onPress={load} />
-          </View>
-        </View>
-      }
-      renderItem={({item})=>(
-        <View style={s.card}>
-          <Text style={s.h2}>#{item.id} · {item.type} · {item.status}</Text>
-          <Text style={s.sub}>Lab {item.lab_id} · {new Date(item.created_at).toLocaleString()}</Text>
-          {item.resource_id ? <Text>resource_id: {item.resource_id}</Text> : item.fixed_id ? <Text>fixed_id: {item.fixed_id}</Text> : null}
-          {!!item.scheduled_at && <Text>Programado: {new Date(item.scheduled_at).toLocaleString()}</Text>}
-          {!!item.technician_name && <Text>Técnico: {item.technician_name}</Text>}
-          {!!item.description && <Text>Desc: {item.description}</Text>}
+        }
+        renderItem={({item})=>(
+          <View style={s.card}>
+            <Text style={s.h2}>#{item.id} · {item.type} · {item.status}</Text>
+            <Text style={s.sub}>Lab {item.lab_id} · {new Date(item.created_at).toLocaleString()}</Text>
+            {item.resource_id ? <Text style={s.p}>Recurso: #{item.resource_id}</Text> : item.fixed_id ? <Text style={s.p}>Equipo fijo: #{item.fixed_id}</Text> : null}
+            {!!item.scheduled_at && <Text style={s.p}>Programado: {new Date(item.scheduled_at).toLocaleString()}</Text>}
+            {!!item.technician_name && <Text style={s.p}>Técnico: {item.technician_name}</Text>}
+            {!!item.description && <Text style={s.p}>{item.description}</Text>}
 
-          <View style={s.row}>
-            <Button title="Detalle" onPress={()=>router.push({ pathname:'/maintenance/orders/[id]', params:{ id:String(item.id)} } as any)} />
-            <View style={{ width:6 }} />
-            <Button title="Iniciar" onPress={()=>start(item.id)} />
-            <View style={{ width:6 }} />
-            <Button title="Cancelar" onPress={()=>cancel(item.id)} />
-          </View>
+            <View style={s.row}>
+              <View style={{ flex:1, marginRight:6 }}>
+                <Button title="Detalle" onPress={()=>router.push({ pathname:'/maintenance/orders/[id]', params:{ id:String(item.id)} } as any)} />
+              </View>
+              <View style={{ flex:1, marginRight:6 }}>
+                <Button title="Iniciar" onPress={()=>start(item.id)} />
+              </View>
+              <View style={{ flex:1, marginLeft:6 }}>
+                <Button title="Cancelar" color="#ef4444" onPress={()=>cancel(item.id)} />
+              </View>
+            </View>
 
-          <View style={s.box}>
-            <Text style={s.boxTitle}>Completar</Text>
-            <TextInput style={s.input} placeholder="result_status (DISPONIBLE/INACTIVO/MANTENIMIENTO/RESERVADO)"
-              value={completeForm[item.id]?.result_status || ''} onChangeText={(v)=>edit(item.id,'result_status',v)} />
-            <TextInput style={s.input} placeholder="used_parts" value={completeForm[item.id]?.used_parts || ''} onChangeText={(v)=>edit(item.id,'used_parts',v)} />
-            <TextInput style={s.input} placeholder="notes" value={completeForm[item.id]?.notes || ''} onChangeText={(v)=>edit(item.id,'notes',v)} />
-            <Button title="Completar" onPress={()=>complete(item.id)} />
+            <View style={s.cardInner}>
+              <Text style={s.h3}>Completar</Text>
+              <TextInput
+                style={s.input}
+                placeholder="Resultado (DISPONIBLE / INACTIVO / MANTENIMIENTO / RESERVADO)"
+                placeholderTextColor="#94a3b8"
+                value={completeForm[item.id]?.result_status || ''}
+                onChangeText={(v)=>edit(item.id,'result_status',v)}
+              />
+              <TextInput
+                style={s.input}
+                placeholder="Repuestos usados (opcional)"
+                placeholderTextColor="#94a3b8"
+                value={completeForm[item.id]?.used_parts || ''}
+                onChangeText={(v)=>edit(item.id,'used_parts',v)}
+              />
+              <TextInput
+                style={s.input}
+                placeholder="Notas (opcional)"
+                placeholderTextColor="#94a3b8"
+                value={completeForm[item.id]?.notes || ''}
+                onChangeText={(v)=>edit(item.id,'notes',v)}
+              />
+              <Button title="Completar" onPress={()=>complete(item.id)} />
+            </View>
           </View>
-        </View>
-      )}
-      contentContainerStyle={{ padding:12 }}
-    />
+        )}
+        contentContainerStyle={{ padding:12 }}
+      />
+    </SafeAreaView>
   );
 }
 
+const COLORS = { bg:'#0b1220', card:'#111827', border:'#1f2937', text:'#e5e7eb', sub:'#94a3b8' };
 const s = StyleSheet.create({
-  h1:{ fontSize:20, fontWeight:'800' }, h2:{ fontWeight:'800' }, sub:{ color:'#666' },
-  row:{ flexDirection:'row', gap:8, marginTop:8 },
-  input:{ borderWidth:1, borderColor:'#ccc', borderRadius:6, padding:8, flex:1 },
-  card:{ backgroundColor:'#fff', padding:12, borderRadius:8, marginBottom:10, elevation:2 },
-  box:{ marginTop:8, gap:8 }, boxTitle:{ fontWeight:'700' }
+  screen:{ flex:1, backgroundColor:COLORS.bg },
+  h1:{ color:COLORS.text, fontSize:20, fontWeight:'800' },
+  h2:{ color:COLORS.text, fontWeight:'800' },
+  h3:{ color:COLORS.text, fontWeight:'800', marginBottom:6 },
+  sub:{ color:COLORS.sub, marginTop:2 },
+  p:{ color:COLORS.text, marginTop:2 },
+  row:{ flexDirection:'row', gap:8, alignItems:'center', marginTop:8 },
+  input:{ backgroundColor:COLORS.card, borderWidth:1, borderColor:COLORS.border, borderRadius:10, padding:10, color:COLORS.text, flex:1 },
+  card:{ backgroundColor:COLORS.card, borderRadius:12, padding:12, marginBottom:10, borderWidth:1, borderColor:COLORS.border },
+  cardInner:{ marginTop:10, gap:8, backgroundColor:'#0f172a', borderRadius:10, padding:10, borderWidth:1, borderColor:COLORS.border },
 });

@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, ScrollView } from "react-native";
+import { View, Text, Pressable, StyleSheet, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
@@ -8,70 +7,51 @@ export default function AdminDashboard() {
   const go = (p: string) => router.push(p as any);
   const logout = () => router.replace("/auth/login" as any);
 
-  const [labId, setLabId] = useState<string>("");
-
   return (
     <SafeAreaView style={s.screen}>
       <ScrollView contentContainerStyle={s.container}>
         <Text style={s.title}>Dashboard ADMIN</Text>
-        <Text style={s.subtitle}>Gestión institucional, catálogo y laboratorios</Text>
+        <Text style={s.subtitle}>Gestión, estructura, monitoreo y cuenta</Text>
 
-        {/* ---- Gestión institucional ---- */}
+        {/* ---- Administración (Mód. 4) ---- */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>Institucional</Text>
+          <Text style={s.sectionTitle}>Administración</Text>
           <View style={s.grid}>
-            <Tile label="Usuarios/Roles" emoji="👥" onPress={() => go("/admin/users")} />
-            <Tile label="Parámetros"     emoji="⚙️" onPress={() => go("/admin/settings")} />
-            <Tile label="Auditoría"      emoji="🧾" onPress={() => go("/admin/audit")} />
-            <Tile label="Reportes 4.4"   emoji="📈" onPress={() => go("/reports")} />
+            <Tile label="Usuarios y roles"        emoji="👥" onPress={() => go("/admin/users")} />
+            <Tile label="Parámetros globales"     emoji="⚙️" onPress={() => go("/admin/settings")} />
+            <Tile label="Reportes institucionales" emoji="📊" onPress={() => go("/reports")} />
+            <Tile label="Auditoría"               emoji="🔎" onPress={() => go("/admin/audit")} />
           </View>
         </View>
 
-        {/* ---- Catálogo/Estructura ---- */}
+        {/* ---- Estructura (CRUD) ---- */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>Catálogo y estructura</Text>
+          <Text style={s.sectionTitle}>Estructura (CRUD)</Text>
           <View style={s.grid}>
-            <Tile label="Departamentos"   emoji="🏫" onPress={() => go("/admin/departments")} />
-            <Tile label="Tipos de recurso" emoji="🧩" onPress={() => go("/admin/resource-types")} />
-            <Tile label="Buscar labs"     emoji="🔎" onPress={() => go("/browse/labs")} />
+            {/* CRUD de Laboratorios con create/list en /labs */}
+            <Tile label="Gestionar laboratorios" emoji="🏗️" onPress={() => go("/labs")} />
+            <Tile label="Departamentos"          emoji="🏫"  onPress={() => go("/admin/departments")} />
+            <Tile label="Tipos de recurso"       emoji="🧩"  onPress={() => go("/admin/resource-types")} />
           </View>
         </View>
 
-        {/* ---- Laboratorios (atajos por ID) ---- */}
+        {/* ---- Monitoreo (lectura) ---- */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>Laboratorios (por ID)</Text>
+          <Text style={s.sectionTitle}>Monitoreo</Text>
+          <View style={s.grid}>
+            <Tile label="Laboratorios (browse)" emoji="🔎" onPress={() => go("/browse/labs")} />
+            <Tile label="Recursos (browse)"     emoji="🧪" onPress={() => go("/browse/resources")} />
+            <Tile label="Calendario (browse)"   emoji="🗓️" onPress={() => go("/browse/calendar")} />
+            <Tile label="Solicitudes"           emoji="📄" onPress={() => go("/requests")} />
+          </View>
+        </View>
 
-          <View style={s.card}>
-            <Text style={s.cardText}>Ingresa un ID de laboratorio para abrir acciones rápidas.</Text>
-            <TextInput
-              style={s.input}
-              placeholder="ej. 1"
-              placeholderTextColor="#94a3b8"
-              keyboardType="numeric"
-              value={labId}
-              onChangeText={setLabId}
-            />
-
-            <View style={s.grid}>
-              <Tile
-                label="Detalles"
-                emoji="📋"
-                disabled={!labId}
-                onPress={() => go(`/lab/${labId}/details`)}
-              />
-              <Tile
-                label="Catálogo"
-                emoji="📚"
-                disabled={!labId}
-                onPress={() => go(`/lab/${labId}/catalog`)}
-              />
-              <Tile
-                label="Calendario"
-                emoji="🗓️"
-                disabled={!labId}
-                onPress={() => go(`/lab/${labId}/calendar`)}
-              />
-            </View>
+        {/* ---- Mi cuenta ---- */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>Mi cuenta</Text>
+          <View style={s.grid}>
+            <Tile label="Mi perfil"  emoji="👤" onPress={() => go("/users/me")} />
+            <Tile label="Historial"  emoji="🗂️" onPress={() => go("/users/history")} />
           </View>
         </View>
 
@@ -84,27 +64,9 @@ export default function AdminDashboard() {
   );
 }
 
-function Tile({
-  label,
-  emoji,
-  onPress,
-  disabled,
-}: {
-  label: string;
-  emoji?: string;
-  onPress: () => void;
-  disabled?: boolean;
-}) {
+function Tile({ label, emoji, onPress }: { label: string; emoji?: string; onPress: ()=>void }) {
   return (
-    <Pressable
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [
-        s.tile,
-        disabled && { opacity: 0.4 },
-        pressed && !disabled && s.tilePressed,
-      ]}
-    >
+    <Pressable onPress={onPress} style={({ pressed }) => [s.tile, pressed && s.tilePressed]}>
       <Text style={s.tileEmoji}>{emoji ?? "•"}</Text>
       <Text style={s.tileText}>{label}</Text>
     </Pressable>
@@ -144,24 +106,6 @@ const s = StyleSheet.create({
   tilePressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
   tileEmoji: { fontSize: 22 },
   tileText: { color: COLORS.text, fontWeight: "700", textAlign: "center" },
-
-  card: {
-    backgroundColor: COLORS.card,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 14,
-    padding: 12,
-    gap: 10,
-  },
-  cardText: { color: COLORS.subtext },
-
-  input: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 10,
-    padding: 10,
-    color: COLORS.text,
-  },
 
   btn: { borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 12 },
   btnPrimary: { backgroundColor: COLORS.primary },

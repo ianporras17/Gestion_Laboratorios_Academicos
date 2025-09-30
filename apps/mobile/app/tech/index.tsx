@@ -1,14 +1,13 @@
-// app/tech/index.tsx
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 
 export default function TechHome() {
   const router = useRouter();
-  const go = (p: string) => router.push(p as any); // <- quita "as any" cuando el union incluya tus rutas
+  const go = (p: string) => router.push(p as any);
 
   return (
     <View style={s.container}>
-      <Text style={s.h1}>Panel Técnico</Text>
+      <Text style={s.h1}>Panel técnico</Text>
 
       <Pressable style={[s.btn, { backgroundColor: '#0ea5e9' }]} onPress={() => go('/tech/approved')}>
         <Text style={s.txt}>Solicitudes aprobadas</Text>
@@ -30,16 +29,14 @@ export default function TechHome() {
         <Text style={s.txt}>Estado equipo fijo</Text>
       </Pressable>
 
-      {/* ojo: index route -> '/maintenance/orders' (no '/maintenance/orders/index') */}
       <Pressable style={[s.btn, { backgroundColor: '#14b8a6' }]} onPress={() => go('/maintenance/orders')}>
-        <Text style={s.txt}>Órdenes mantenimiento</Text>
+        <Text style={s.txt}>Órdenes de mantenimiento</Text>
       </Pressable>
 
       <Pressable style={[s.btn, { backgroundColor: '#10b981' }]} onPress={() => go('/maintenance/orders/new')}>
         <Text style={s.txt}>Nueva orden</Text>
       </Pressable>
 
-      {/* ojo: index route -> '/reports' (no '/reports/index') */}
       <Pressable style={[s.btn, { backgroundColor: '#0ea5e9' }]} onPress={() => go('/reports')}>
         <Text style={s.txt}>Reportes</Text>
       </Pressable>

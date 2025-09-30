@@ -1,3 +1,4 @@
+// apps/api/src/routes/index.js
 const express = require('express');
 
 // Dominios principales
@@ -27,6 +28,9 @@ const auth          = require('./auth.routes');
 const users         = require('./users.routes');
 const browse        = require('./browse.routes');
 
+// 👇 Adaptadores para /labs/:id/resources usando el controlador existente
+const ResourcesController = require('../controllers/resources.controller');
+
 const router = express.Router();
 
 // Ping raíz para el app (evita 404 al cargar /api)
@@ -49,6 +53,20 @@ router.use('/maintenance',    maintenance);
 router.use('/admin',          admin);
 // 4.4 bajo /admin/reports/*
 router.use('/admin/reports',  adminReports);
+
+// ---- Adaptadores REST para catálogo anidado por lab ----
+// GET /labs/:id/resources -> lista de resources filtrados por lab_id
+router.get('/labs/:id/resources', (req, res, next) => {
+  req.query.lab_id = req.params.id;
+  return ResourcesController.list(req, res, next);
+});
+
+// POST /labs/:id/resources -> crea resource con lab_id = :id
+router.post('/labs/:id/resources', (req, res, next) => {
+  req.body = { ...(req.body || {}), lab_id: Number(req.params.id) };
+  return ResourcesController.create(req, res, next);
+});
+// --------------------------------------------------------
 
 // Routers que exponen paths en raíz (mantener al final para evitar sombras)
 router.use('/', availability);

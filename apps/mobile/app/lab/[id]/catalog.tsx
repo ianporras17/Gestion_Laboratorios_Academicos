@@ -1,11 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet, FlatList, TouchableOpacity, Linking, ScrollView } from 'react-native';
+import {
+  View, Text, TextInput, Button, Alert, StyleSheet, FlatList,
+  TouchableOpacity, Linking, ScrollView, ActivityIndicator
+} from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { ResourceTypesApi, ResourcesApi, SubscriptionsApi, ChangeLogApi } from '@/services/availability';
 import type { Resource, ResourceType, ChangeLog } from '@/types/availability';
 
 type Category = 'EQUIPO'|'MATERIAL'|'SOFTWARE'|'OTRO';
 type ResourceStatus = Resource['status'];
+
+const pickError = (e:any) =>
+  e?.response?.data?.error || e?.response?.data?.message || e?.message || 'No se pudo completar la acción';
 
 function Chip({ label, active, onPress }: { label: string; active?: boolean; onPress?: () => void }) {
   return (
@@ -28,12 +34,18 @@ function ResourceCard({
   return (
     <View style={styles.resourceCard}>
       <Text style={styles.title}>{item.name}</Text>
-      <Text style={styles.sub}>{item.type_name} · {item.status} · Qty {item.qty_available}</Text>
+      <Text style={styles.sub}>{item.type_name} · {item.status} · Cantidad {item.qty_available}</Text>
       {!!item.description && <Text style={styles.sub}>{item.description}</Text>}
 
       <View style={styles.row}>
         <View style={{flex:1}}>
-          <TextInput style={styles.input} placeholder="URL foto" value={photoUrl} onChangeText={setPhotoUrl}/>
+          <TextInput
+            style={styles.input}
+            placeholder="URL de la foto"
+            placeholderTextColor="#94a3b8"
+            value={photoUrl}
+            onChangeText={setPhotoUrl}
+          />
         </View>
         <Button title="Agregar foto" onPress={()=>onAddPhoto(item.id, photoUrl)}/>
       </View>
@@ -55,11 +67,10 @@ export default function Catalog() {
   const router = useRouter();
   const DEMO_USER_ID = 1;
 
-  // Ruta tipada para corregir el error de TS
   const toTypes = '/admin/resource-types' as Href;
 
   const [types, setTypes] = useState<ResourceType[]>([]);
-  const [typeId, setTypeId] = useState<number|undefined>(undefined); // filtro + crear
+  const [typeId, setTypeId] = useState<number|undefined>(undefined);
   const [items, setItems] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -80,8 +91,7 @@ export default function Catalog() {
       setTypes(ts);
 
       if (!ts.length) {
-        setItems([]);
-        setTypeId(undefined);
+        setItems([]); setTypeId(undefined);
       } else {
         const selected = typeof typeId === 'number' ? typeId : ts[0].id;
         setTypeId(selected);
@@ -89,7 +99,7 @@ export default function Catalog() {
         setItems(rs);
       }
     } catch (e:any) {
-      Alert.alert('Error', e.message ?? 'No se pudo cargar catálogo');
+      Alert.alert('Atención', pickError(e));
     } finally { setLoading(false); }
   };
 
@@ -102,12 +112,12 @@ export default function Catalog() {
       const rs = await ResourcesApi.listByLab(labId, { type_id: tid });
       setItems(rs);
     } catch (e:any) {
-      Alert.alert('Error', e.message ?? 'No se pudo cargar recursos');
+      Alert.alert('Atención', pickError(e));
     }
   };
 
   const createResource = async () => {
-    if (!typeId || !name) return Alert.alert('Completar', 'Tipo y nombre obligatorios');
+    if (!typeId || !name) return Alert.alert('Completar', 'Tipo y nombre son obligatorios');
     try {
       const r = await ResourcesApi.create(labId, {
         type_id: typeId,
@@ -120,17 +130,17 @@ export default function Catalog() {
       setName(''); setDesc(''); setQty('1'); setStatus('DISPONIBLE');
       Alert.alert('OK','Recurso creado');
     } catch (e:any) {
-      Alert.alert('Error', e.message ?? 'No se pudo crear');
+      Alert.alert('Atención', pickError(e));
     }
   };
 
   const addPhoto = async (resourceId: number, url: string) => {
-    if (!url) return Alert.alert('Completar','Ingresa URL de foto');
+    if (!url) return Alert.alert('Completar','Ingresa la URL de la foto');
     try {
       await ResourcesApi.addPhoto(resourceId, url);
       Alert.alert('OK','Foto agregada');
     } catch (e:any) {
-      Alert.alert('Error', e.message ?? 'No se pudo agregar foto');
+      Alert.alert('Atención', pickError(e));
     }
   };
 
@@ -139,7 +149,7 @@ export default function Catalog() {
       await SubscriptionsApi.subscribeLab(DEMO_USER_ID, labId);
       Alert.alert('OK','Suscripción al laboratorio creada');
     } catch (e:any) {
-      Alert.alert('Error', e.message ?? 'No se pudo suscribir');
+      Alert.alert('Atención', pickError(e));
     }
   };
 
@@ -148,13 +158,13 @@ export default function Catalog() {
       await SubscriptionsApi.subscribeResource(DEMO_USER_ID, resourceId);
       Alert.alert('OK','Suscripción creada');
     } catch (e:any) {
-      Alert.alert('Error', e.message ?? 'No se pudo suscribir');
+      Alert.alert('Atención', pickError(e));
     }
   };
 
   const openRequest = (r: Resource) => {
-    if (!r.request_url) return Alert.alert('Sin enlace','Este recurso no tiene request_url configurado');
-    Linking.openURL(r.request_url).catch(()=>Alert.alert('Error','No se pudo abrir el enlace'));
+    if (!r.request_url) return Alert.alert('Sin enlace','Este recurso no tiene un enlace de solicitud configurado');
+    Linking.openURL(r.request_url).catch(()=>Alert.alert('Atención','No se pudo abrir el enlace'));
   };
 
   const viewLog = async (resourceId: number) => {
@@ -162,7 +172,7 @@ export default function Catalog() {
       const l = await ChangeLogApi.list('resource', resourceId);
       setLogs(l); setActiveLogId(resourceId);
     } catch (e:any) {
-      Alert.alert('Error', e.message ?? 'No se pudo cargar bitácora');
+      Alert.alert('Atención', pickError(e));
     }
   };
 
@@ -173,7 +183,6 @@ export default function Catalog() {
         <Button title="Suscribirme al LAB" onPress={subscribeLab}/>
       </View>
 
-      {/* Si no hay tipos, mostramos CTA para crearlos */}
       {!types.length ? (
         <View style={styles.emptyBox}>
           <Text style={styles.emptyTitle}>No hay tipos de recurso</Text>
@@ -188,12 +197,7 @@ export default function Catalog() {
           {/* Chips de tipos */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom:8}}>
             {types.map(t => (
-              <Chip
-                key={t.id}
-                label={`${t.name}`}
-                active={t.id === typeId}
-                onPress={() => refetchByType(t.id)}
-              />
+              <Chip key={t.id} label={`${t.name}`} active={t.id === typeId} onPress={() => refetchByType(t.id)} />
             ))}
           </ScrollView>
 
@@ -201,17 +205,25 @@ export default function Catalog() {
           <View style={styles.card}>
             <Text style={styles.h2}>Crear recurso</Text>
             <Text style={styles.sub}>Tipo seleccionado: {types.find(t=>t.id===typeId)?.name}</Text>
-            <TextInput style={styles.input} placeholder="Nombre" value={name} onChangeText={setName}/>
-            <TextInput style={styles.input} placeholder="Descripción" value={desc} onChangeText={setDesc}/>
-            <TextInput style={styles.input} placeholder="Cantidad disponible" keyboardType="numeric" value={qty} onChangeText={setQty}/>
+            <TextInput style={styles.input} placeholder="Nombre" placeholderTextColor="#94a3b8" value={name} onChangeText={setName}/>
+            <TextInput style={styles.input} placeholder="Descripción (opcional)" placeholderTextColor="#94a3b8" value={desc} onChangeText={setDesc}/>
+            <TextInput style={styles.input} placeholder="Cantidad disponible" placeholderTextColor="#94a3b8" keyboardType="numeric" value={qty} onChangeText={setQty}/>
             <TextInput
               style={styles.input}
               placeholder="Estado (DISPONIBLE/RESERVADO/MANTENIMIENTO/INACTIVO)"
+              placeholderTextColor="#94a3b8"
               value={status}
               onChangeText={(t)=>setStatus((t.toUpperCase() as ResourceStatus) || 'DISPONIBLE')}
             />
             <Button title="Crear" onPress={createResource}/>
           </View>
+
+          {loading && (
+            <View style={{ paddingVertical:8, alignItems:'center' }}>
+              <ActivityIndicator />
+              <Text style={{ color:'#6b7280', marginTop:6 }}>Cargando recursos…</Text>
+            </View>
+          )}
 
           {/* Lista */}
           <FlatList
@@ -246,9 +258,9 @@ export default function Catalog() {
               keyExtractor={(l)=>String(l.id)}
               renderItem={({item})=>(
                 <View style={{paddingVertical:6}}>
-                  <Text style={{fontWeight:'600'}}>{item.action}</Text>
-                  <Text style={{color:'#555'}}>{new Date(item.created_at).toLocaleString()}</Text>
-                  {!!item.detail && <Text style={{color:'#333'}} numberOfLines={2}>{JSON.stringify(item.detail)}</Text>}
+                  <Text style={{fontWeight:'800'}}>{item.action}</Text>
+                  <Text style={{color:'#6b7280'}}>{new Date(item.created_at).toLocaleString('es-ES')}</Text>
+                  {!!item.detail && <Text style={{color:'#111'}} numberOfLines={2}>{JSON.stringify(item.detail)}</Text>}
                 </View>
               )}
               ListEmptyComponent={<Text>No hay entradas</Text>}
@@ -263,22 +275,22 @@ export default function Catalog() {
 const styles = StyleSheet.create({
   rowBetween:{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:8 },
   row:{ flexDirection:'row', alignItems:'center' },
-  h1:{ fontSize:20, fontWeight:'700' },
-  h2:{ fontWeight:'700', marginBottom:6 },
-  sub:{ color:'#555', marginTop:2 },
+  h1:{ fontSize:20, fontWeight:'800' },
+  h2:{ fontWeight:'800', marginBottom:6 },
+  sub:{ color:'#6b7280', marginTop:2 },
   card:{ backgroundColor:'#fff', padding:12, borderRadius:10, marginBottom:10, elevation:2 },
-  input:{ borderWidth:1, borderColor:'#d4d4d8', borderRadius:8, padding:10, marginVertical:4 },
+  input:{ borderWidth:1, borderColor:'#d4d4d8', borderRadius:8, padding:10, marginVertical:4, color:'#111' },
   resourceCard:{ backgroundColor:'#fff', padding:12, borderRadius:10, marginVertical:6, elevation:1 },
-  title:{ fontWeight:'700' },
+  title:{ fontWeight:'800' },
 
   chip:{ paddingVertical:8, paddingHorizontal:12, borderRadius:999, backgroundColor:'#eef2ff', marginRight:8 },
   chipActive:{ backgroundColor:'#2d6cdf' },
-  chipText:{ color:'#334155', fontWeight:'600' },
+  chipText:{ color:'#334155', fontWeight:'700' },
   chipTextActive:{ color:'#fff' },
 
   emptyBox:{ backgroundColor:'#fff', borderRadius:12, padding:16, elevation:2, marginTop:6 },
-  emptyTitle:{ fontSize:16, fontWeight:'700' },
-  emptySub:{ color:'#555', marginTop:4 },
+  emptyTitle:{ fontSize:16, fontWeight:'800' },
+  emptySub:{ color:'#6b7280', marginTop:4 },
 
   modal:{ position:'absolute', left:0, right:0, top:0, bottom:0, backgroundColor:'rgba(0,0,0,0.4)', justifyContent:'center', alignItems:'center' },
   modalInner:{ backgroundColor:'#fff', width:'90%', maxHeight:'70%', borderRadius:12, padding:12 }

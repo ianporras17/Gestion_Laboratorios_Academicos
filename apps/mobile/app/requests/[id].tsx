@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet, FlatList, RefreshControl } from 'react-native';
+import { View, Text, TextInput, Alert, StyleSheet, FlatList, RefreshControl, Pressable, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter  } from 'expo-router';
 import { RequestsApi } from '@/services/requests';
 import type { RequestDetail, RequestMessage } from '@/types/requests';
@@ -14,21 +15,23 @@ export default function RequestDetailScreen() {
   const [message, setMessage] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const pickError = (e:any) =>
+    e?.response?.data?.error || e?.response?.data?.message || e?.message || 'No se pudo completar la operación.';
 
   const load = useCallback(async () => {
     try {
+      setLoading(true);
       const r: any = await RequestsApi.get(reqId);
-      // fallback: si la API no trae messages embebidos, los pedimos aparte
       if (!r?.messages) {
-        try {
-          const mm = await RequestsApi.messages(reqId);
-          r.messages = mm;
-        } catch {}
+        try { r.messages = await RequestsApi.messages(reqId); } catch {}
       }
       setData(r);
     } catch (e:any) {
-      Alert.alert('Error', e.message ?? 'No se pudo cargar');
+      Alert.alert('Atención', pickError(e));
     } finally {
+      setLoading(false);
       setRefreshing(false);
     }
   }, [reqId]);
@@ -40,13 +43,10 @@ export default function RequestDetailScreen() {
       setBusy(true);
       await RequestsApi.approve(reqId, { reviewer_id: 1, reviewer_note });
       setNote('');
-      Alert.alert('OK', 'Aprobada');
+      Alert.alert('Listo', 'Solicitud aprobada');
       load();
-    } catch (e:any) {
-      Alert.alert('Error', e.message ?? 'No se pudo aprobar');
-    } finally {
-      setBusy(false);
-    }
+    } catch (e:any) { Alert.alert('Atención', pickError(e)); }
+    finally { setBusy(false); }
   };
 
   const reject = async () => {
@@ -54,13 +54,10 @@ export default function RequestDetailScreen() {
       setBusy(true);
       await RequestsApi.reject(reqId, { reviewer_id: 1, reviewer_note });
       setNote('');
-      Alert.alert('OK', 'Rechazada');
+      Alert.alert('Listo', 'Solicitud rechazada');
       load();
-    } catch (e:any) {
-      Alert.alert('Error', e.message ?? 'No se pudo rechazar');
-    } finally {
-      setBusy(false);
-    }
+    } catch (e:any) { Alert.alert('Atención', pickError(e)); }
+    finally { setBusy(false); }
   };
 
   const needInfo = async () => {
@@ -68,13 +65,10 @@ export default function RequestDetailScreen() {
       setBusy(true);
       await RequestsApi.needInfo(reqId, { reviewer_id: 1, reviewer_note, message });
       setNote(''); setMessage('');
-      Alert.alert('OK', 'Se solicitó información');
+      Alert.alert('Listo', 'Se solicitó información al usuario');
       load();
-    } catch (e:any) {
-      Alert.alert('Error', e.message ?? 'No se pudo actualizar');
-    } finally {
-      setBusy(false);
-    }
+    } catch (e:any) { Alert.alert('Atención', pickError(e)); }
+    finally { setBusy(false); }
   };
 
   const addMsg = async () => {
@@ -84,11 +78,8 @@ export default function RequestDetailScreen() {
       const m: RequestMessage = await RequestsApi.addMessage(reqId, { sender: 'USUARIO', message });
       setData((prev:any) => prev ? ({ ...prev, messages: [...(prev.messages || []), m] }) : prev);
       setMessage('');
-    } catch (e:any) {
-      Alert.alert('Error', e.message ?? 'No se pudo enviar el mensaje');
-    } finally {
-      setBusy(false);
-    }
+    } catch (e:any) { Alert.alert('Atención', pickError(e)); }
+    finally { setBusy(false); }
   };
 
   const canCancel = useMemo(() => {
@@ -102,134 +93,162 @@ export default function RequestDetailScreen() {
     try {
       setBusy(true);
       await RequestsApi.cancel(reqId);
-      Alert.alert('OK', 'Solicitud cancelada');
+      Alert.alert('Listo', 'Solicitud cancelada');
       load();
-    } catch (e:any) {
-      Alert.alert('Error', e?.response?.data?.error || e.message || 'No se pudo cancelar');
-    } finally {
-      setBusy(false);
-    }
+    } catch (e:any) { Alert.alert('Atención', pickError(e)); }
+    finally { setBusy(false); }
   };
 
-  // 👇 ya no usamos useMemo aquí (evita hook condicional)
   const messages = data?.messages ?? [];
 
-  if (!data) {
+  if (loading && !data) {
     return (
-      <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
-        <Text>Cargando...</Text>
-      </View>
+      <SafeAreaView style={[st.screen, { alignItems:'center', justifyContent:'center' }]}>
+        <ActivityIndicator />
+        <Text style={st.sub}>Cargando solicitud…</Text>
+      </SafeAreaView>
     );
   }
 
-  // Header con metadatos y acciones
+  if (!data) {
+    return (
+      <SafeAreaView style={[st.screen, { alignItems:'center', justifyContent:'center' }]}>
+        <Text style={st.sub}>No se pudo cargar la solicitud.</Text>
+      </SafeAreaView>
+    );
+  }
+
   const Header = (
     <View>
-      <View style={s.card}>
-        <Text style={s.h1}>Solicitud #{data.id}</Text>
-        <Text style={s.sub}>
-          Lab #{data.lab_id} · {data.status} {data.requirements_ok ? '' : '· (revisar requisitos)'}
+      <View style={st.card}>
+        <Text style={st.h1}>Solicitud #{data.id}</Text>
+        <Text style={st.sub}>
+          Laboratorio #{data.lab_id} · <Text style={[st.badge, st.badgePlain]}>{data.status}</Text> {data.requirements_ok ? '' : '· (revisar requisitos)'}
         </Text>
-        <Text style={s.sub}>
+        <Text style={st.sub}>
           {data.requester_name} ({data.requester_role}) · {data.requester_email}
         </Text>
-        {!!data.requester_program && <Text style={s.sub}>{data.requester_program}</Text>}
-        <Text style={{ marginTop:6 }}>{data.purpose}</Text>
-        <Text style={s.sub}>
+        {!!data.requester_program && <Text style={st.sub}>{data.requester_program}</Text>}
+        <Text style={{ marginTop:6, color:'#e5e7eb' }}>{data.purpose}</Text>
+        <Text style={st.sub}>
           {new Date(data.requested_from).toLocaleString()} — {new Date(data.requested_to).toLocaleString()} · {data.priority}
         </Text>
       </View>
 
-      <View style={s.card}>
-        <Text style={s.h2}>Recursos</Text>
+      <View style={st.card}>
+        <Text style={st.h2}>Recursos</Text>
         {(data.items ?? []).length === 0 ? (
-          <Text>(sin ítems)</Text>
+          <Text style={st.sub}>(Sin ítems)</Text>
         ) : (
           (data.items ?? []).map((it:any) => (
-            <Text key={it.id ?? `${it.resource_id}-${it.qty}`}>
-              • {it.resource_id ? `Recurso #${it.resource_id}` : 'Espacio del LAB'}  (qty {it.qty})
+            <Text key={it.id ?? `${it.resource_id}-${it.qty}`} style={{ color:'#e5e7eb' }}>
+              • {it.resource_id ? `Recurso #${it.resource_id}` : 'Espacio del laboratorio'}  (cant. {it.qty})
             </Text>
           ))
         )}
       </View>
 
-      <View style={s.card}>
-        <Text style={s.h2}>Acciones</Text>
+      <View style={st.card}>
+        <Text style={st.h2}>Acciones del revisor</Text>
         <TextInput
-          style={s.input}
+          style={st.input}
           placeholder="Nota del revisor / motivo"
+          placeholderTextColor="#94a3b8"
           value={reviewer_note}
           onChangeText={setNote}
         />
-        <Button title={busy ? '...' : 'Aprobar'} onPress={approve} />
-        <View style={{height:6}} />
-        <Button title={busy ? '...' : 'Rechazar'} onPress={reject} />
-        <View style={{height:6}} />
+        <View style={st.row}>
+          <Pressable style={[st.btn, st.btnOk]} onPress={approve} disabled={busy}><Text style={st.btnText}>{busy ? '...' : 'Aprobar'}</Text></Pressable>
+          <Pressable style={[st.btn, st.btnBad]} onPress={reject} disabled={busy}><Text style={st.btnText}>{busy ? '...' : 'Rechazar'}</Text></Pressable>
+        </View>
+
         <TextInput
-          style={s.input}
+          style={st.input}
           placeholder="Mensaje para solicitar información"
+          placeholderTextColor="#94a3b8"
           value={message}
           onChangeText={setMessage}
         />
-        <Button title={busy ? '...' : 'Solicitar información'} onPress={needInfo} />
+        <Pressable style={[st.btn, st.btnInfo]} onPress={needInfo} disabled={busy}>
+          <Text style={st.btnText}>{busy ? '...' : 'Solicitar información'}</Text>
+        </Pressable>
+
         {canCancel && (
-          <>
-            <View style={{height:6}} />
-            <Button title={busy ? '...' : 'Cancelar solicitud (usuario)'} onPress={doCancel} />
-          </>
+          <Pressable style={[st.btn, st.btnWarn]} onPress={doCancel} disabled={busy}>
+            <Text style={st.btnText}>{busy ? '...' : 'Cancelar solicitud (usuario)'}</Text>
+          </Pressable>
         )}
       </View>
 
       <View style={{height:8}} />
       <View style={{flexDirection:'row', gap:8, flexWrap:'wrap'}}>
-        <Button title="Asignaciones" onPress={() => router.push(`/requests/${reqId}/assignments` as const)} />
-        <Button title="Consumos" onPress={() => router.push(`/requests/${reqId}/consumptions` as const)} />
-        <Button title="Beneficios" onPress={() => router.push(`/requests/${reqId}/benefits` as const)} />
+        <Pressable style={[st.btn, st.btnOutline]} onPress={() => router.push(`/requests/${reqId}/assignments` as const)}><Text style={st.btnOutlineText}>Asignaciones</Text></Pressable>
+        <Pressable style={[st.btn, st.btnOutline]} onPress={() => router.push(`/requests/${reqId}/consumptions` as const)}><Text style={st.btnOutlineText}>Consumos</Text></Pressable>
+        <Pressable style={[st.btn, st.btnOutline]} onPress={() => router.push(`/requests/${reqId}/benefits` as const)}><Text style={st.btnOutlineText}>Beneficios</Text></Pressable>
       </View>
 
-      <View style={s.card}>
-        <Text style={s.h2}>Mensajes</Text>
-        {messages.length === 0 && <Text style={{color:'#555'}}>(No hay mensajes aún)</Text>}
+      <View style={st.card}>
+        <Text style={st.h2}>Mensajes</Text>
+        {messages.length === 0 && <Text style={st.sub}>(No hay mensajes aún)</Text>}
       </View>
     </View>
   );
 
-  // Footer con caja de envío de mensaje
   const Footer = (
-    <View style={[s.card, { marginBottom: 24 }]}>
+    <View style={[st.card, { marginBottom: 24 }]}>
       <TextInput
-        style={s.input}
+        style={st.input}
         placeholder="Escribe un mensaje"
+        placeholderTextColor="#94a3b8"
         value={message}
         onChangeText={setMessage}
       />
-      <Button title={busy ? '...' : 'Enviar mensaje'} onPress={addMsg}/>
+      <Pressable style={[st.btn, st.btnPrimary]} onPress={addMsg} disabled={busy}>
+        <Text style={st.btnText}>{busy ? '...' : 'Enviar mensaje'}</Text>
+      </Pressable>
     </View>
   );
 
   return (
-    <FlatList
-      data={messages}
-      keyExtractor={(m:any) => String(m.id)}
-      renderItem={({ item }) => (
-        <View style={[s.card, { paddingVertical: 8 }]}>
-          <Text style={{fontWeight:'700'}}>{item.sender}</Text>
-          <Text>{item.message}</Text>
-          <Text style={{color:'#666', fontSize:12}}>{new Date(item.created_at).toLocaleString()}</Text>
-        </View>
-      )}
-      ListHeaderComponent={Header}
-      ListFooterComponent={Footer}
-      contentContainerStyle={{ padding: 12 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
-    />
+    <SafeAreaView style={st.screen}>
+      <FlatList
+        data={messages}
+        keyExtractor={(m:any) => String(m.id)}
+        renderItem={({ item }) => (
+          <View style={[st.card, { paddingVertical: 10 }]}>
+            <Text style={{fontWeight:'800', color:'#e5e7eb'}}>{item.sender}</Text>
+            <Text style={{ color:'#e5e7eb' }}>{item.message}</Text>
+            <Text style={{color:'#94a3b8', fontSize:12}}>{new Date(item.created_at).toLocaleString()}</Text>
+          </View>
+        )}
+        ListHeaderComponent={Header}
+        ListFooterComponent={Footer}
+        contentContainerStyle={{ padding: 16 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
+      />
+    </SafeAreaView>
   );
 }
 
-const s = StyleSheet.create({
-  h1:{ fontSize:20, fontWeight:'800' },
-  sub:{ color:'#555', marginTop:2 },
-  card:{ backgroundColor:'#fff', padding:12, borderRadius:8, marginBottom:10, elevation:2 },
-  h2:{ fontWeight:'800', marginBottom:6 },
-  input:{ borderWidth:1, borderColor:'#ccc', borderRadius:6, padding:8, marginVertical:6 },
+const COLORS = { bg:'#0b1220', card:'#111827', border:'#1f2937', text:'#e5e7eb', sub:'#94a3b8', primary:'#4f46e5', ok:'#16a34a', bad:'#dc2626', info:'#0ea5e9', warn:'#f59e0b' };
+
+const st = StyleSheet.create({
+  screen:{ flex:1, backgroundColor:COLORS.bg },
+  h1:{ fontSize:20, fontWeight:'800', color:COLORS.text },
+  h2:{ fontWeight:'800', color:COLORS.text, marginBottom:6 },
+  sub:{ color:COLORS.sub, marginTop:2 },
+  card:{ backgroundColor:COLORS.card, padding:12, borderRadius:12, marginBottom:10, borderWidth:1, borderColor:COLORS.border },
+  input:{ backgroundColor:COLORS.bg, borderWidth:1, borderColor:COLORS.border, borderRadius:10, padding:12, marginVertical:6, color:COLORS.text },
+  row:{ flexDirection:'row', gap:8, marginTop:6, flexWrap:'wrap' },
+  btn:{ borderRadius:10, paddingVertical:10, paddingHorizontal:14, alignItems:'center' },
+  btnPrimary:{ backgroundColor:COLORS.primary, marginTop:6 },
+  btnOk:{ backgroundColor:COLORS.ok, flex:1 },
+  btnBad:{ backgroundColor:COLORS.bad, flex:1 },
+  btnInfo:{ backgroundColor:COLORS.info, marginTop:6 },
+  btnWarn:{ backgroundColor:COLORS.warn, marginTop:6 },
+  btnText:{ color:'#fff', fontWeight:'800' },
+  btnOutline:{ backgroundColor:'transparent', borderWidth:1, borderColor:COLORS.border },
+  btnOutlineText:{ color:COLORS.text, fontWeight:'800' },
+  badge:{ paddingHorizontal:8, paddingVertical:2, borderRadius:999 },
+  badgePlain:{ backgroundColor:'#1f2937', color:'#e5e7eb' },
 });

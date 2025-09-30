@@ -1,4 +1,5 @@
-const Users = require('../models/users.model'); // <- asegúrate que este archivo exista y exporte funciones usadas
+// apps/api/src/controllers/users.controller.js
+const Users = require('../models/users.model');
 
 const UsersController = {
   async me(req, res, next) {
@@ -11,14 +12,18 @@ const UsersController = {
 
   async updateMe(req, res, next) {
     try {
-      const row = await Users.updateById(req.user.id, req.body || {});
+      // ✅ usar el nombre real del método del model
+      const row = await Users.updateProfile(req.user.id, req.body || {});
+      // opcional pero recomendado: propagar a requests
+      if (row) await Users.propagateToRequests(req.user.id);
       res.json(row);
     } catch (e) { next(e); }
   },
 
   async myTrainings(req, res, next) {
     try {
-      const rows = await Users.listMyTrainings(req.user.id);
+      // ✅ nombre correcto en el model
+      const rows = await Users.listTrainings(req.user.id);
       res.json(rows);
     } catch (e) { next(e); }
   },
@@ -34,7 +39,8 @@ const UsersController = {
     try {
       const lab_id = Number(req.query.lab_id);
       if (!lab_id) return res.status(400).json({ error: 'lab_id es requerido' });
-      const r = await Users.checkLabEligibility(req.user.id, lab_id);
+      // ✅ nombre y orden de parámetros correctos
+      const r = await Users.labRequirements(lab_id, req.user.id);
       res.json(r);
     } catch (e) { next(e); }
   },

@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, Switch, Alert, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Button, Switch, Alert, StyleSheet, ScrollView } from 'react-native';
 import { MaintenanceApi } from '@/services/maintenance';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+const pickError = (e:any) =>
+  e?.response?.data?.error || e?.response?.data?.message || e?.message || 'No se pudo crear la orden';
 
 export default function NewOrderScreen() {
   const router = useRouter();
@@ -16,7 +20,8 @@ export default function NewOrderScreen() {
 
   const save = async () => {
     if (!labId || (!resourceId && !fixedId)) {
-      Alert.alert('Completar', 'lab_id y (resource_id o fixed_id) son requeridos'); return;
+      Alert.alert('Completar', 'Debes indicar lab_id y (resource_id o fixed_id).');
+      return;
     }
     try {
       const row = await MaintenanceApi.createOrder({
@@ -32,30 +37,87 @@ export default function NewOrderScreen() {
       Alert.alert('OK', `Orden #${row.id} creada`);
       router.replace({ pathname:'/maintenance/orders/[id]', params:{ id:String(row.id) } } as any);
     } catch (e:any) {
-      Alert.alert('Error', e.message ?? 'No se pudo crear');
+      Alert.alert('Atención', pickError(e));
     }
   };
 
   return (
-    <View style={{ padding:12 }}>
-      <Text style={s.h1}>Nueva Orden de Mantenimiento</Text>
-      <TextInput style={s.input} placeholder="lab_id" keyboardType="numeric" value={labId} onChangeText={setLabId}/>
-      <TextInput style={s.input} placeholder="resource_id" keyboardType="numeric" value={resourceId} onChangeText={setResourceId}/>
-      <TextInput style={s.input} placeholder="fixed_id" keyboardType="numeric" value={fixedId} onChangeText={setFixedId}/>
-      <TextInput style={s.input} placeholder="type (PREVENTIVO/CORRECTIVO)" value={type} onChangeText={(v)=>setType(v as any)}/>
-      <TextInput style={s.input} placeholder="scheduled_at (YYYY-MM-DDTHH:mm)" value={scheduledAt} onChangeText={setScheduledAt}/>
-      <TextInput style={s.input} placeholder="technician_name" value={techName} onChangeText={setTechName}/>
-      <TextInput style={s.input} placeholder="description" value={desc} onChangeText={setDesc}/>
-      <View style={{ flexDirection:'row', alignItems:'center', gap:10, marginBottom:10 }}>
-        <Text>Notificar si vuelve DISPONIBLE</Text>
-        <Switch value={notify} onValueChange={setNotify} />
-      </View>
-      <Button title="Crear" onPress={save} />
-    </View>
+    <SafeAreaView style={s.screen}>
+      <ScrollView contentContainerStyle={{ padding:12 }}>
+        <Text style={s.h1}>Nueva Orden de Mantenimiento</Text>
+
+        <View style={s.card}>
+          <TextInput
+            style={s.input}
+            placeholder="ID de laboratorio (lab_id)"
+            placeholderTextColor="#94a3b8"
+            keyboardType="numeric"
+            value={labId}
+            onChangeText={setLabId}
+          />
+          <TextInput
+            style={s.input}
+            placeholder="ID de recurso (resource_id) — opcional"
+            placeholderTextColor="#94a3b8"
+            keyboardType="numeric"
+            value={resourceId}
+            onChangeText={setResourceId}
+          />
+          <TextInput
+            style={s.input}
+            placeholder="ID equipo fijo (fixed_id) — opcional"
+            placeholderTextColor="#94a3b8"
+            keyboardType="numeric"
+            value={fixedId}
+            onChangeText={setFixedId}
+          />
+          <TextInput
+            style={s.input}
+            placeholder="Tipo (PREVENTIVO / CORRECTIVO)"
+            placeholderTextColor="#94a3b8"
+            value={type}
+            onChangeText={(v)=>setType(v as any)}
+          />
+          <TextInput
+            style={s.input}
+            placeholder="Programado para (YYYY-MM-DDTHH:mm) — opcional"
+            placeholderTextColor="#94a3b8"
+            value={scheduledAt}
+            onChangeText={setScheduledAt}
+          />
+          <TextInput
+            style={s.input}
+            placeholder="Nombre del técnico — opcional"
+            placeholderTextColor="#94a3b8"
+            value={techName}
+            onChangeText={setTechName}
+          />
+          <TextInput
+            style={s.input}
+            placeholder="Descripción — opcional"
+            placeholderTextColor="#94a3b8"
+            value={desc}
+            onChangeText={setDesc}
+          />
+
+          <View style={s.switchRow}>
+            <Text style={s.sub}>Notificar si vuelve “DISPONIBLE”</Text>
+            <Switch value={notify} onValueChange={setNotify} />
+          </View>
+
+          <Button title="Crear" onPress={save} />
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
+const COLORS = { bg:'#0b1220', card:'#111827', border:'#1f2937', text:'#e5e7eb', sub:'#94a3b8' };
 const s = StyleSheet.create({
-  h1:{ fontSize:20, fontWeight:'800' },
-  input:{ borderWidth:1, borderColor:'#ccc', borderRadius:6, padding:8, marginVertical:6 },
+  screen:{ flex:1, backgroundColor:COLORS.bg },
+  h1:{ color:COLORS.text, fontSize:20, fontWeight:'800', marginBottom:8 },
+  card:{ backgroundColor:COLORS.card, borderRadius:12, padding:12, borderWidth:1, borderColor:COLORS.border },
+  input:{ backgroundColor:COLORS.bg, borderWidth:1, borderColor:COLORS.border, borderRadius:10, padding:10, color:COLORS.text, marginVertical:6 },
+  sub:{ color:COLORS.sub },
+  switchRow:{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginVertical:8 },
 });
