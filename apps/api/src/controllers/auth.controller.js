@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const Auth = require('../models/auth.model');
-const { JWT_SECRET } = require('../middlewares/auth.middleware');
+const { JWT_SECRET } = require('../utils/config'); // <-- AHORA de utils/config
 
 function signUser(u) {
   return jwt.sign(
@@ -26,6 +26,7 @@ const AuthController = {
       if (!u) return res.status(401).json({ error: 'Credenciales inválidas' });
       const ok = await Auth.verifyPassword(u, password || '');
       if (!ok) return res.status(401).json({ error: 'Credenciales inválidas' });
+
       const safe = {
         id: u.id, role: u.role, email: u.email, full_name: u.full_name,
         student_id: u.student_id, teacher_code: u.teacher_code,

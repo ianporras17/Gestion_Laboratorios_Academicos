@@ -1,202 +1,92 @@
-import { useEffect, useState } from "react";
-import { ScrollView, View, Text, Pressable, StyleSheet } from "react-native";
-import axios from "axios";
-import { Link, type Href, useRouter } from "expo-router";
-
-const BASE = (process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/$/, "");
+import { View, Text, Pressable, StyleSheet, Platform } from "react-native";
+import { useRouter, useNavigation } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useEffect } from "react";
 
 export default function Home() {
   const router = useRouter();
-  const go = (p: string) => router.push(p as any); // rutas fuera del union tipado
+  const navigation = useNavigation();
 
-  const [msg, setMsg] = useState<string>("(sin datos)");
-  const [status, setStatus] = useState<"idle"|"loading"|"ok"|"err">("idle");
+  // Oculta header y TAB BAR solo en esta pantalla
+  useEffect(() => {
+    navigation.setOptions({
+      headerShown: false,
+      // En TabNavigator: oculta barra inferior
+      // @ts-ignore (según tipos del nav actual)
+      tabBarStyle: { display: "none" },
+      // Compat (algunas versiones)
+      // @ts-ignore
+      tabBarVisible: false,
+    });
+  }, [navigation]);
 
-  async function ping() {
-    setStatus("loading");
-    try {
-      const { data } = await axios.get(`${BASE.replace(/\/api$/, "")}/api`);
-      setMsg(typeof data === "object" ? JSON.stringify(data) : String(data));
-      setStatus("ok");
-    } catch (e: any) {
-      setMsg(e?.message ?? String(e));
-      setStatus("err");
-    }
-  }
-  useEffect(() => { ping(); }, []);
-
-  // rutas tipadas (evitan el error del union)
-  const toLabs    = "/labs" as Href;
-  const toDepts   = "/admin/departments" as Href;
-  const toTypes   = "/admin/resource-types" as Href;
-  const toReqNew  = "/requests/new" as Href;
-  const toReqs    = "/requests" as Href;
-  const toReport1 = "/reports/usage" as Href;
+  const go = (p: string) => router.push(p as any);
 
   return (
-    <ScrollView style={s.screen} contentContainerStyle={s.container}>
-      {/* Cabecera */}
-      <Text style={s.title}>Conexión con API</Text>
+    <SafeAreaView style={s.screen}>
+      <View style={s.container}>
+        <View style={s.brand}>
+          <Text style={s.brandIcon}>🔬</Text>
+          <Text style={s.title}>LabTEC</Text>
+          <Text style={s.subtitle}>Gestión de laboratorios, recursos y reservas</Text>
+        </View>
 
-      <Text style={s.label}>API_URL</Text>
-      <Text selectable style={s.code}>{BASE || "(vacía)"}</Text>
+        <View style={s.actions}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => go("/auth/login")}
+            style={({ pressed }) => [s.btn, s.btnPrimary, pressed && s.btnPressed]}
+            android_ripple={{ borderless: false }}
+            hitSlop={8}
+          >
+            <Text style={s.btnPrimaryText}>Iniciar sesión</Text>
+          </Pressable>
 
-      <Text style={s.label}>Respuesta</Text>
-      <Text selectable style={[s.code, status==="err" && { color: "#ff8a8a" }]}>
-        {msg}
-      </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => go("/auth/register")}
+            style={({ pressed }) => [s.btn, s.btnOutline, pressed && s.btnPressed]}
+            android_ripple={{ borderless: false }}
+            hitSlop={8}
+          >
+            <Text style={s.btnOutlineText}>Crear cuenta</Text>
+          </Pressable>
+        </View>
 
-      {/* ---------- Auth & Usuarios ---------- */}
-      <Text style={s.section}>Auth & Usuarios</Text>
-
-      <Pressable style={[s.btn, { backgroundColor: "#1f2937" }]} onPress={() => go("/auth/login")}>
-        <Text style={s.btnText}>LOGIN</Text>
-      </Pressable>
-
-      <Pressable style={[s.btn, { backgroundColor: "#374151" }]} onPress={() => go("/auth/register")}>
-        <Text style={s.btnText}>REGISTRARME</Text>
-      </Pressable>
-
-      <Pressable style={[s.btn, { backgroundColor: "#111827" }]} onPress={() => go("/users/profile")}>
-        <Text style={s.btnText}>MI PERFIL</Text>
-      </Pressable>
-
-      <Pressable style={[s.btn, { backgroundColor: "#0f172a" }]} onPress={() => go("/users/trainings")}>
-        <Text style={s.btnText}>MIS CAPACITACIONES</Text>
-      </Pressable>
-
-      <Pressable style={[s.btn, { backgroundColor: "#1e293b" }]} onPress={() => go("/users/availability")}>
-        <Text style={s.btnText}>BUSCAR DISPONIBILIDAD</Text>
-      </Pressable>
-
-      {/* NUEVO: Historial y Notificaciones */}
-      <Pressable style={[s.btn, { backgroundColor: "#0ea5e9" }]} onPress={() => go("/users/history")}>
-        <Text style={s.btnText}>MI HISTORIAL</Text>
-      </Pressable>
-
-      <Pressable style={[s.btn, { backgroundColor: "#06b6d4" }]} onPress={() => go("/users/notifications")}>
-        <Text style={s.btnText}>NOTIFICACIONES</Text>
-      </Pressable>
-
-      {/* ---------- Labs ---------- */}
-      <Text style={s.section}>Labs</Text>
-
-      <Link href={toLabs} asChild>
-        <Pressable style={[s.btn, { backgroundColor: "#10b981" }]}>
-          <Text style={s.btnText}>IR A LABS</Text>
-        </Pressable>
-      </Link>
-
-      {/* ---------- Solicitudes ---------- */}
-      <Text style={s.section}>Solicitudes</Text>
-
-      <Link href={toReqNew} asChild>
-        <Pressable style={[s.btn, { backgroundColor: "#f59e0b" }]}>
-          <Text style={s.btnText}>CREAR SOLICITUD</Text>
-        </Pressable>
-      </Link>
-
-      <Link href={toReqs} asChild>
-        <Pressable style={[s.btn, { backgroundColor: "#2563eb" }]}>
-          <Text style={s.btnText}>VER SOLICITUDES</Text>
-        </Pressable>
-      </Link>
-
-      {/* ---------- Admin ---------- */}
-      <Text style={s.section}>Admin</Text>
-
-      <Link href={toDepts} asChild>
-        <Pressable style={[s.btn, { backgroundColor: "#2d6cdf" }]}>
-          <Text style={s.btnText}>DEPARTAMENTOS</Text>
-        </Pressable>
-      </Link>
-
-      <Link href={toTypes} asChild>
-        <Pressable style={[s.btn, { backgroundColor: "#8b5cf6" }]}>
-          <Text style={s.btnText}>TIPOS DE RECURSO</Text>
-        </Pressable>
-      </Link>
-
-      {/* Enlaces rápidos para 4.1–4.3 */}
-      <Pressable style={[s.btn, { backgroundColor: "#0ea5e9" }]} onPress={() => go("/admin/users")}>
-        <Text style={s.btnText}>GESTIÓN DE USUARIOS</Text>
-      </Pressable>
-      <Pressable style={[s.btn, { backgroundColor: "#0284c7" }]} onPress={() => go("/admin/settings")}>
-        <Text style={s.btnText}>PARÁMETROS GLOBALES</Text>
-      </Pressable>
-      <Pressable style={[s.btn, { backgroundColor: "#0369a1" }]} onPress={() => go("/admin/audit")}>
-        <Text style={s.btnText}>AUDITORÍA</Text>
-      </Pressable>
-
-      {/* ---------- Reporte 1.4 existente ---------- */}
-      <Text style={s.section}>Reportes (Mód 1.4)</Text>
-
-      <Link href={toReport1} asChild>
-        <Pressable style={[s.btn, { backgroundColor: "#0ea5e9" }]}>
-          <Text style={s.btnText}>REPORTE DE USO (1.4)</Text>
-        </Pressable>
-      </Link>
-
-      {/* ---------- Técnico (2.x) ---------- */}
-      <Text style={s.section}>Técnico (Mód 2)</Text>
-
-      <Pressable style={[s.btn, { backgroundColor: "#0ea5e9" }]} onPress={() => go("/tech")}>
-        <Text style={s.btnText}>PANEL TÉCNICO</Text>
-      </Pressable>
-
-      <Pressable style={[s.btn, { backgroundColor: "#22c55e" }]} onPress={() => go("/tech/assignments")}>
-        <Text style={s.btnText}>ASIGNACIONES</Text>
-      </Pressable>
-
-      <Pressable style={[s.btn, { backgroundColor: "#0ea5e9" }]} onPress={() => go("/tech/approved")}>
-        <Text style={s.btnText}>SOLICITUDES APROBADAS</Text>
-      </Pressable>
-
-      {/* ---------- Inventario (2.2) ---------- */}
-      <Text style={s.section}>Inventario</Text>
-
-      <Pressable style={[s.btn, { backgroundColor: "#f59e0b" }]} onPress={() => go("/inventory/consumables")}>
-        <Text style={s.btnText}>CONSUMIBLES</Text>
-      </Pressable>
-
-      <Pressable style={[s.btn, { backgroundColor: "#6366f1" }]} onPress={() => go("/inventory/movements")}>
-        <Text style={s.btnText}>MOVIMIENTOS</Text>
-      </Pressable>
-
-      <Pressable style={[s.btn, { backgroundColor: "#8b5cf6" }]} onPress={() => go("/inventory/fixed-status")}>
-        <Text style={s.btnText}>ESTADO EQUIPO FIJO</Text>
-      </Pressable>
-
-      {/* ---------- Mantenimiento (2.3) ---------- */}
-      <Text style={s.section}>Mantenimiento</Text>
-
-      <Pressable style={[s.btn, { backgroundColor: "#14b8a6" }]} onPress={() => go("/maintenance/orders")}>
-        <Text style={s.btnText}>ÓRDENES</Text>
-      </Pressable>
-
-      <Pressable style={[s.btn, { backgroundColor: "#10b981" }]} onPress={() => go("/maintenance/orders/new")}>
-        <Text style={s.btnText}>NUEVA ORDEN</Text>
-      </Pressable>
-
-      {/* ---------- Reportes operativos (2.4) ---------- */}
-      <Text style={s.section}>Reportes (Mód 2.4)</Text>
-
-      <Pressable style={[s.btn, { backgroundColor: "#0ea5e9" }]} onPress={() => go("/reports")}>
-        <Text style={s.btnText}>REPORTES OPERATIVOS</Text>
-      </Pressable>
-
-      <View style={{ height: 24 }} />
-    </ScrollView>
+        <Text style={s.footer}>© {new Date().getFullYear()} TEC · Plataforma de Gestión</Text>
+      </View>
+    </SafeAreaView>
   );
 }
 
+const COLORS = {
+  bg: "#0b1220",
+  card: "#0f172a",
+  primary: "#4f46e5",
+  text: "#e5e7eb",
+  subtext: "#94a3b8",
+  outline: "#334155",
+};
+
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0b1220" },
-  container: { padding: 16, gap: 12 },
-  title: { color: "#fff", fontSize: 20, fontWeight: "600", textAlign: "center", marginBottom: 8 },
-  section: { color: "#9bb3ff", fontWeight: "800", marginTop: 18, marginBottom: 4, fontSize: 12, textTransform: "uppercase" },
-  label: { color: "#9bb3ff", fontWeight: "600", marginTop: 8 },
-  code: { color: "#fff" },
-  btn: { alignSelf: "stretch", borderRadius: 10, paddingVertical: 12, paddingHorizontal: 18, minWidth: 260, alignItems: "center" },
-  btnText: { color: "#fff", fontWeight: "700" }
+  screen: { flex: 1, backgroundColor: COLORS.bg },
+  container: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24, gap: 24 },
+  brand: { alignItems: "center", gap: 8 },
+  brandIcon: { fontSize: 48 },
+  title: { color: COLORS.text, fontSize: 28, fontWeight: "800", letterSpacing: 0.3 },
+  subtitle: { color: COLORS.subtext, fontSize: 14, textAlign: "center", maxWidth: 320 },
+  actions: { width: "100%", maxWidth: 420, gap: 12 },
+  btn: { borderRadius: 14, paddingVertical: 14, paddingHorizontal: 18, alignItems: "center", justifyContent: "center" },
+  btnPrimary: {
+    backgroundColor: COLORS.primary,
+    ...Platform.select({
+      ios: { shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
+      android: { elevation: 3 },
+    }),
+  },
+  btnPrimaryText: { color: "white", fontWeight: "700", fontSize: 16 },
+  btnOutline: { backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.outline },
+  btnOutlineText: { color: COLORS.text, fontWeight: "700", fontSize: 16 },
+  btnPressed: { transform: [{ scale: 0.98 }], opacity: 0.9 },
+  footer: { color: COLORS.subtext, fontSize: 12, marginTop: 12 },
 });

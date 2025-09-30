@@ -1,16 +1,16 @@
 const jwt = require('jsonwebtoken');
-const SECRET = process.env.JWT_SECRET || 'dev-secret';
+const { JWT_SECRET } = require('../utils/config');
 
 function requireAuth(req, res, next) {
-  const h = req.headers.authorization || '';
-  const token = h.startsWith('Bearer ') ? h.slice(7) : null;
-  if (!token) return res.status(401).json({ error: 'No token' });
+  const auth = req.headers.authorization || "";
+  const [, token] = auth.split(" ");
+  if (!token) return res.status(401).json({ error: 'Token requerido' });
   try {
-    const payload = jwt.verify(token, SECRET);
-    req.user = { id: payload.sub, role: payload.role, email: payload.email };
-    return next();
-  } catch (e) {
-    return res.status(401).json({ error: 'Invalid token' });
+    const payload = jwt.verify(token, JWT_SECRET);
+    req.user = payload;
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Token inválido' });
   }
 }
 
